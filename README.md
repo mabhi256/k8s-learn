@@ -12,9 +12,13 @@ s5  Multi-service         - inter-service calls, NetworkPolicy, RBAC, HPA
 s6  Helm + observability  - Helm chart, Prometheus, Grafana, Loki; ready for EKS Fargate
 ```
 
+See [docs/](docs/) for per-stage notes with commands, reasoning, and what each concept teaches.
+
+---
+
 ## App: users-api
 
-A minimal Express + Postgres CRUD service used throughout all stages.
+A minimal Express + Postgres CRUD service used throughout all stages. A static frontend is served on port **8080**.
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
@@ -23,65 +27,6 @@ A minimal Express + Postgres CRUD service used throughout all stages.
 | GET | `/users/:id` | Get one user |
 | POST | `/users` | Create a user |
 | DELETE | `/users/:id` | Delete a user |
-
----
-
-## s0 — Plain Docker
-
-> **Tag:** `s0`
-> Goal: verify the app and database work together before touching Kubernetes.
-
-### Start
-
-```bash
-cd local
-docker compose up -d --build
-```
-
-The API is available at `http://localhost:3000`.
-
-### Check the API with curl
-
-#### Health check
-
-```bash
-curl http://localhost:3000/health
-```
-
-Expected: `{"status":"ok","db":true}`
-
-#### Create a user
-
-```bash
-curl -X POST http://localhost:3000/users \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Alice", "email": "alice@example.com"}'
-```
-
-#### List users
-
-```bash
-curl http://localhost:3000/users
-```
-
-#### Get a user by id
-
-```bash
-curl http://localhost:3000/users/1
-```
-
-#### Delete a user
-
-```bash
-curl -X DELETE http://localhost:3000/users/1
-```
-
-### Stop
-
-```bash
-docker compose down          # keep the postgres volume
-docker compose down -v       # also delete the volume (fresh DB next start)
-```
 
 ---
 
