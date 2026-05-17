@@ -9,15 +9,6 @@ export const pool = new Pool({
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 })
 
-export let dbReady = false;
-
 export async function checkDB() {
     await pool.query("SELECT 1");
-    dbReady = true;
-    console.log("DB ready")
-}
-
-export function requireDB(req, res, next) {
-    if (!dbReady) return res.status(503).json({ error: "db not ready" })
-    next()
 }
