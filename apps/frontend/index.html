@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #333; }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 1.25rem; }
+    #health-badge {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      background: #444;
+    }
+    #health-badge.ok  { background: #16a34a; }
+    #health-badge.err { background: #dc2626; }
+
+    main { max-width: 700px; margin: 2rem auto; padding: 0 1rem; }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+    .card h2 { font-size: 1rem; margin-bottom: 1rem; color: #555; text-transform: uppercase; letter-spacing: .05em; }
+
+    form { display: flex; gap: .5rem; flex-wrap: wrap; }
+    input {
+      flex: 1;
+      min-width: 140px;
+      padding: .5rem .75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: .9rem;
+    }
+    button {
+      padding: .5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .9rem;
+    }
+    .btn-primary { background: #1a1a2e; color: white; }
+    .btn-primary:hover { background: #2d2d5e; }
+    .btn-danger  { background: #fee2e2; color: #dc2626; }
+    .btn-danger:hover  { background: #fca5a5; }
+
+    #error-msg { color: #dc2626; font-size: .85rem; margin-top: .5rem; min-height: 1.2em; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: .6rem .75rem; border-bottom: 1px solid #eee; font-size: .9rem; }
+    th { color: #888; font-weight: 600; font-size: .8rem; text-transform: uppercase; }
+    td:last-child { text-align: right; }
+    tr:last-child td { border-bottom: none; }
+    #empty-row td { color: #aaa; text-align: center; padding: 2rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Users App</h1>
+    <span id="health-badge">checking...</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Add User</h2>
+      <form id="add-form">
+        <input id="name"  type="text"  placeholder="Name"  required>
+        <input id="email" type="email" placeholder="Email" required>
+        <button type="submit" class="btn-primary">Add</button>
+      </form>
+      <div id="error-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Users</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr id="empty-row"><td colspan="4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    const API = '/api';
+
+    async function checkHealth() {
+      const badge = document.getElementById('health-badge');
+      try {
+        const r = await fetch(`${API}/health`);
+        const d = await r.json();
+        badge.textContent = d.db ? 'healthy' : 'db down';
+        badge.className = d.db ? 'ok' : 'err';
+      } catch {
+        badge.textContent = 'unreachable';
+        badge.className = 'err';
+      }
+    }
+
+    async function loadUsers() {
+      const tbody = document.getElementById('users-tbody');
+      try {
+        const r = await fetch(`${API}/users`);
+        const users = await r.json();
+        if (users.length === 0) {
+          tbody.innerHTML = '<tr id="empty-row"><td colspan="4">No users yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td>${esc(u.name)}</td>
+            <td>${esc(u.email)}</td>
+            <td>${new Date(u.created_at).toLocaleDateString()}</td>
+            <td><button class="btn-danger" onclick="deleteUser(${u.id})">Delete</button></td>
+          </tr>`).join('');
+      } catch {
+        tbody.innerHTML = '<tr id="empty-row"><td colspan="4">Failed to load users.</td></tr>';
+      }
+    }
+
+    async function deleteUser(id) {
+      await fetch(`${API}/users/${id}`, { method: 'DELETE' });
+      loadUsers();
+    }
+
+    document.getElementById('add-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const errEl = document.getElementById('error-msg');
+      errEl.textContent = '';
+      const name  = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      try {
+        const r = await fetch(`${API}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email }),
+        });
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          errEl.textContent = d.error || `Error ${r.status}`;
+          return;
+        }
+        document.getElementById('name').value = '';
+        document.getElementById('email').value = '';
+        loadUsers();
+      } catch {
+        errEl.textContent = 'Request failed.';
+      }
+    });
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    checkHealth();
+    loadUsers();
+    setInterval(checkHealth, 10000);
+  </script>
+</body>
+</html>
