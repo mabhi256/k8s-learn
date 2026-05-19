@@ -2,24 +2,24 @@
 
 A hands-on Kubernetes learning project. Each stage introduces one new concept and is tagged in git so you can checkout any point in the journey.
 
-```text
-s0   Plain Docker          - app + db via docker compose, no k8s
-s1   Pod basics            - run a single pod, learn lifecycle and probes
-s2   Deployment + Service  - replicas, rolling updates, ClusterIP, ConfigMaps/Secrets, resource requests/limits
-s3   Ingress               - HTTP routing via nginx-ingress, host + path rules
-s4   TLS                   - cert-manager, self-signed ClusterIssuer, HTTPS termination at the ingress
-s5   StatefulSet + PV      - Postgres in-cluster, mirrors RDS; PVC, pod identity, anti-affinity for replica spread
-s6   Multi-service         - inter-service calls, NetworkPolicy, RBAC, HPA
-s7   Helm + observability  - Helm chart, Prometheus, Grafana, Loki
-s8   Service mesh          - Istio or Linkerd, mTLS, traffic shaping, circuit breaking
-s9   Jobs + DaemonSets     - batch, cron, per-node workloads, init/sidecar patterns
-s10  KEDA                  - event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers
-s11  GitOps                - ArgoCD, declarative deploys, drift detection
-s12  Security hardening    - External Secrets, Pod Security Standards, Kyverno, Trivy
-s13  Resilience            - PDB, ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread)
-s14  Operators + CRDs      - build a tiny operator with kubebuilder
-s15  EKS migration         - IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager
-```
+| Stage | Name | Topics |
+| ----- | ---- | ------ |
+| s0 | Plain Docker | app + db via docker compose, no k8s |
+| s1 | Pod basics | run a single pod, learn lifecycle and probes |
+| s2 | Deployment + Service | replicas, rolling updates, ClusterIP, ConfigMaps/Secrets, resource requests/limits |
+| s3 | Ingress | HTTP routing via nginx-ingress, host + path rules |
+| s4 | TLS | cert-manager, self-signed ClusterIssuer, HTTPS termination at the ingress |
+| s5 | StatefulSet + PV | Postgres in-cluster, mirrors RDS; PVC, pod identity, anti-affinity for replica spread; LoadBalancer service for external DB client access (pgAdmin/DBeaver) |
+| s6 | Multi-service | inter-service calls (gRPC over ClusterIP), external gRPC via LoadBalancer, NetworkPolicy, RBAC, HPA |
+| s7 | Helm + observability | Helm chart, Prometheus, Grafana, Loki |
+| s8 | Service mesh | Istio or Linkerd, mTLS, traffic shaping, circuit breaking |
+| s9 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns |
+| s10 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers |
+| s11 | GitOps | ArgoCD, declarative deploys, drift detection |
+| s12 | Security hardening | External Secrets, Pod Security Standards, Kyverno, Trivy |
+| s13 | Resilience | PDB, ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
+| s14 | Operators + CRDs | build a tiny operator with kubebuilder |
+| s15 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager |
 
 See [docs/](docs/) for per-stage notes with commands, reasoning, and what each concept teaches.
 
@@ -31,7 +31,8 @@ Everything from **s0–s14 runs entirely on [kind](https://kind.sigs.k8s.io/) wi
 
 | AWS service                    | Local equivalent used in earlier stages          |
 | ------------------------------ | ------------------------------------------------ |
-| ALB / NLB                      | nginx-ingress (s3)                               |
+| ALB                            | nginx-ingress (s3)                               |
+| NLB (LoadBalancer service)     | Cloud Provider KIND — Postgres (s5), gRPC (s6)   |
 | ACM (TLS certs)                | cert-manager + self-signed CA (s4)               |
 | RDS                            | Postgres StatefulSet + PVC (s5)                  |
 | ElastiCache                    | Redis Deployment, if/when added                  |
@@ -82,3 +83,5 @@ git tag          # list all stage tags
 git checkout s1  # jump to a stage
 git checkout -   # go back to where you were
 ```
+
+> **Note:** From s5 onward, a multi-node kind cluster is required to observe node-topology concepts (anti-affinity, DaemonSets, topology spread, PDB).
