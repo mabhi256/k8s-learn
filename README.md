@@ -8,10 +8,10 @@ A hands-on Kubernetes learning project. Each stage introduces one new concept an
 | s1 | Pod basics | run a single pod, learn lifecycle and probes |
 | s2 | Deployment + Service | replicas, rolling updates, ClusterIP, ConfigMaps/Secrets, resource requests/limits |
 | s3 | Ingress | HTTP routing via nginx-ingress, host + path rules |
-| s4 | TLS | cert-manager, self-signed ClusterIssuer, HTTPS termination at the ingress |
+| s4 | TLS | cert-manager (introduces CRDs: `Certificate`, `ClusterIssuer`), self-signed ClusterIssuer, HTTPS termination at the ingress, HTTP→HTTPS redirect |
 | s5 | StatefulSet + PV | Postgres in-cluster, mirrors RDS; PVC, pod identity, anti-affinity for replica spread; LoadBalancer service for external DB client access (pgAdmin/DBeaver) |
 | s6 | Multi-service | inter-service calls (gRPC over ClusterIP), external gRPC via LoadBalancer, NetworkPolicy, RBAC, HPA |
-| s7 | Helm + observability | Helm chart, Prometheus, Grafana, Loki |
+| s7 | Helm + observability | Helm chart, Prometheus + Grafana (metrics, via CRDs: `ServiceMonitor`, `PrometheusRule`), Loki (logs), Tempo + OpenTelemetry (tracing) |
 | s8 | Service mesh | Istio or Linkerd, mTLS, traffic shaping, circuit breaking |
 | s9 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns |
 | s10 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers |
@@ -41,6 +41,7 @@ Everything from **s0–s14 runs entirely on [kind](https://kind.sigs.k8s.io/) wi
 | EBS / EFS CSI                  | local-path-provisioner (built into kind, s5)     |
 | Route53                        | `/etc/hosts` entry (s3)                          |
 | CloudWatch Logs/Metrics        | Prometheus + Grafana + Loki (s7)                 |
+| X-Ray (tracing)                | Tempo + OpenTelemetry Collector (s7)             |
 | IAM Roles for ServiceAccounts  | no local equivalent; cloud-only concept (s15)    |
 | Karpenter / Cluster Autoscaler | no local equivalent; kind nodes are static (s15) |
 
