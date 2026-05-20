@@ -12,12 +12,12 @@ A hands-on Kubernetes learning project. Each stage introduces one new concept an
 | s5 | StatefulSet + PV | Postgres in-cluster, mirrors RDS; PVC, pod identity, anti-affinity for replica spread; LoadBalancer service for external DB client access (pgAdmin/DBeaver) |
 | s6 | Multi-service | inter-service calls (gRPC over ClusterIP), external gRPC via LoadBalancer, NetworkPolicy, RBAC, HPA |
 | s7 | Helm + observability | Helm chart, Prometheus + Grafana (metrics, via CRDs: `ServiceMonitor`, `PrometheusRule`), Loki (logs), Tempo + OpenTelemetry (tracing) |
-| s8 | Service mesh | Istio or Linkerd, mTLS, traffic shaping, circuit breaking |
-| s9 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns |
+| s8 | Service mesh | Istio or Linkerd, mTLS, traffic shaping (canary, blue/green, app `api/v1` and `api/v2` running side-by-side with weighted/header-based routing), circuit breaking |
+| s9 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns (Flyway DB migrations via initContainer or pre-deploy Job; `pg_dump` CronJob for the s5 Postgres StatefulSet) |
 | s10 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers |
 | s11 | GitOps | ArgoCD, declarative deploys, drift detection |
 | s12 | Security hardening | External Secrets, Pod Security Standards, Kyverno, Trivy |
-| s13 | Resilience | PDB, ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
+| s13 | Resilience | PDB (incl. the Postgres PDB flagged in s5), ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
 | s14 | Operators + CRDs | build a tiny operator with kubebuilder |
 | s15 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager |
 

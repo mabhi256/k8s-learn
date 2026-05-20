@@ -6,6 +6,6 @@ metadata:
     app: users-api
 
 data:
-  DB_HOST: "host.docker.internal"
+  DB_HOST: "postgres-0.postgres-headless"
   DB_PORT: "5432"
   DB_NAME: "appdb"

@@ -3,22 +3,13 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: demo
 nodes:
-# one node hosting a control plane
 - role: control-plane
   image: kindest/node:v1.32.2
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
-  # port forward 80 on the host to 80 on this node
   extraPortMappings:
-  - containerPort: 80
-    hostPort: 880
-    # listenAddress: "0.0.0.0" # Optional, defaults to "0.0.0.0"
-    # protocol: TCP # default protocol
-  - containerPort: 443
-    hostPort: 443
-  - containerPort: 30080   # NodePort you'll assign in your Service
+  - containerPort: 30080   # NodePort kept for s2/s3 reference
     hostPort: 30080
+# workers carry stateful workloads (s5) so anti-affinity can spread them
+- role: worker
+  image: kindest/node:v1.32.2
+- role: worker
+  image: kindest/node:v1.32.2

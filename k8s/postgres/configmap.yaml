@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: "appdb"
+  # PGDATA points at a subdirectory of the mounted volume so the
+  # data dir is not the mount point itself - the standard Postgres
+  # recipe for avoiding "directory not empty" errors on first boot.
+  PGDATA: "/var/lib/postgresql/data/pgdata"
