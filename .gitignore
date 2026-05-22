@@ -1,1 +1,2 @@
-/apps/users-api/node_modules
+**/node_modules
+**/generated

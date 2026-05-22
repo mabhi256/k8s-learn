@@ -10,16 +10,19 @@ A hands-on Kubernetes learning project. Each stage introduces one new concept an
 | s3 | Ingress | HTTP routing via nginx-ingress, host + path rules |
 | s4 | TLS | cert-manager (introduces CRDs: `Certificate`, `ClusterIssuer`), self-signed ClusterIssuer, HTTPS termination at the ingress, HTTP→HTTPS redirect |
 | s5 | StatefulSet + PV | Postgres in-cluster, mirrors RDS; PVC, pod identity, anti-affinity for replica spread; LoadBalancer service for external DB client access (pgAdmin/DBeaver) |
-| s6 | Multi-service | inter-service calls (gRPC over ClusterIP), external gRPC via LoadBalancer, NetworkPolicy, RBAC, HPA |
-| s7 | Helm + observability | Helm chart, Prometheus + Grafana (metrics, via CRDs: `ServiceMonitor`, `PrometheusRule`), Loki (logs), Tempo + OpenTelemetry (tracing) |
-| s8 | Service mesh | Istio or Linkerd, mTLS, traffic shaping (canary, blue/green, app `api/v1` and `api/v2` running side-by-side with weighted/header-based routing), circuit breaking |
-| s9 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns (Flyway DB migrations via initContainer or pre-deploy Job; `pg_dump` CronJob for the s5 Postgres StatefulSet) |
-| s10 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers |
-| s11 | GitOps | ArgoCD, declarative deploys, drift detection |
-| s12 | Security hardening | External Secrets, Pod Security Standards, Kyverno, Trivy |
-| s13 | Resilience | PDB (incl. the Postgres PDB flagged in s5), ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
-| s14 | Operators + CRDs | build a tiny operator with kubebuilder |
-| s15 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager |
+| s6 | Multi-service | second workload (`notify-api`), inter-service calls (gRPC over ClusterIP), external gRPC via LoadBalancer |
+| s7 | NetworkPolicy | swap kindnet for Calico, default-deny ingress, explicit allow rules for each flow (frontend→users-api, users-api→postgres, users-api→notify-api, ext→notify-api) |
+| s8 | Workload RBAC | per-workload ServiceAccounts, token automount off by default, narrow `Role` + `RoleBinding` for the one workload that needs API access |
+| s9 | HPA | `HorizontalPodAutoscaler`, metrics-server, CPU-based scaling, load test with `hey`, scale-up vs scale-down behavior |
+| s10 | Helm + observability | Helm chart, Prometheus + Grafana (metrics, via CRDs: `ServiceMonitor`, `PrometheusRule`), Loki (logs), Tempo + OpenTelemetry (tracing) |
+| s11 | Service mesh | Istio or Linkerd, mTLS, traffic shaping (canary, blue/green, app `api/v1` and `api/v2` running side-by-side with weighted/header-based routing), circuit breaking |
+| s12 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns (Flyway DB migrations via initContainer or pre-deploy Job; `pg_dump` CronJob for the s5 Postgres StatefulSet) |
+| s13 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers |
+| s14 | GitOps | ArgoCD, declarative deploys, drift detection |
+| s15 | Security hardening | External Secrets, Pod Security Standards, Kyverno, Trivy |
+| s16 | Resilience | PDB (incl. the Postgres PDB flagged in s5), ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
+| s17 | Operators + CRDs | build a tiny operator with kubebuilder |
+| s18 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager, human RBAC via IAM + EKS Access Entries (bind ClusterRoles to IAM users/groups) |
 
 See [docs/](docs/) for per-stage notes with commands, reasoning, and what each concept teaches.
 
@@ -27,39 +30,64 @@ See [docs/](docs/) for per-stage notes with commands, reasoning, and what each c
 
 ## Local vs cloud
 
-Everything from **s0–s14 runs entirely on [kind](https://kind.sigs.k8s.io/) with open-source tools.** No AWS account, no free-tier juggling. **s15 is the only stage that requires AWS** — its whole point is swapping the local equivalents below for AWS-managed counterparts and learning the cloud-specific glue (IRSA, ALB controller, Karpenter, etc.). Building the operator (s14) is also done locally, then migrated alongside everything else in s15.
+Everything from **s0–s17 runs entirely on [kind](https://kind.sigs.k8s.io/) with open-source tools. s18 is the only stage that requires AWS**
 
 | AWS service                    | Local equivalent used in earlier stages          |
 | ------------------------------ | ------------------------------------------------ |
 | ALB                            | nginx-ingress (s3)                               |
-| NLB (LoadBalancer service)     | Cloud Provider KIND — Postgres (s5), gRPC (s6)   |
+| NLB (LoadBalancer service)     | Cloud Provider KIND: Postgres (s5), gRPC (s6)    |
 | ACM (TLS certs)                | cert-manager + self-signed CA (s4)               |
 | RDS                            | Postgres StatefulSet + PVC (s5)                  |
 | ElastiCache                    | Redis Deployment, if/when added                  |
 | ECR                            | `kind load docker-image` (s1+)                   |
-| Secrets Manager                | External Secrets + Vault or Sealed Secrets (s12) |
+| Secrets Manager                | External Secrets + Vault or Sealed Secrets (s15) |
 | EBS / EFS CSI                  | local-path-provisioner (built into kind, s5)     |
 | Route53                        | `/etc/hosts` entry (s3)                          |
-| CloudWatch Logs/Metrics        | Prometheus + Grafana + Loki (s7)                 |
-| X-Ray (tracing)                | Tempo + OpenTelemetry Collector (s7)             |
-| IAM Roles for ServiceAccounts  | no local equivalent; cloud-only concept (s15)    |
-| Karpenter / Cluster Autoscaler | no local equivalent; kind nodes are static (s15) |
+| CloudWatch Logs/Metrics        | Prometheus + Grafana + Loki (s10)                |
+| X-Ray (tracing)                | Tempo + OpenTelemetry Collector (s10)            |
+| IAM Roles for ServiceAccounts  | no local equivalent; cloud-only concept (s18)    |
+| Karpenter / Cluster Autoscaler | no local equivalent; kind nodes are static (s18) |
 
 The migration to EKS is therefore mostly a config swap (ingress class, storage class, image registry, secret backend) plus the AWS-specific identity and node-scaling pieces that have no kind analogue.
 
 ---
 
-## App: users-api
+## Application stack
 
-A minimal Express + Postgres CRUD service used throughout all stages. A static frontend is served on port **8080**.
+The project runs four services. They are introduced one at a time across the stages.
+
+### users-api (s1+)
+
+A Node.js + Express REST API. Talks to Postgres over TCP. The primary workload used in every stage.
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| GET | `/health` | Liveness check |
+| GET | `/health` | Readiness + DB check |
+| GET | `/live` | Liveness (no DB hit) |
 | GET | `/users` | List all users |
 | GET | `/users/:id` | Get one user |
 | POST | `/users` | Create a user |
 | DELETE | `/users/:id` | Delete a user |
+
+After a create or delete, users-api fires a best-effort gRPC call to notify-api (s6+).
+
+### frontend (s2+)
+
+A static single-page app served by nginx. Talks only to users-api via the ingress (`/api` prefix). No direct backend access.
+
+### Postgres (s5+)
+
+Runs as a `StatefulSet` inside the cluster with a `PersistentVolumeClaim` per pod. Introduced in s5 to replace the docker-compose Postgres from s0.
+
+### notify-api (s6+)
+
+A Node.js gRPC server. Receives a notification from users-api on every user create or delete and logs it. No database, no state.
+
+| RPC | Request fields | Description |
+| --- | --- | --- |
+| `Notify/SendNotification` | `user_id`, `email`, `action` | Log a user lifecycle event |
+
+Exposed inside the cluster on port `50051` (ClusterIP) and externally via a LoadBalancer Service for testing with `grpcurl`.
 
 ---
 

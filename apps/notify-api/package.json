@@ -1,24 +1,20 @@
 {
-    "name": "users-api",
+    "name": "notify-api",
     "version": "1.0.0",
-    "main": "dist/src/index.js",
+    "main": "dist/src/server.js",
     "scripts": {
         "generate:proto": "mkdir -p ./generated && grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --proto_path=./src --ts_proto_out=./generated --ts_proto_opt=outputServices=grpc-js,env=node,esModuleInterop=true ./src/notify.proto",
         "build": "tsc",
-        "dev": "tsx src/index.ts",
-        "start": "node dist/src/index.js"
+        "dev": "tsx src/server.ts",
+        "start": "node dist/src/server.js"
     },
     "dependencies": {
         "@bufbuild/protobuf": "^2.12.0",
         "@grpc/grpc-js": "^1.14.4",
-        "@grpc/proto-loader": "^0.8.1",
-        "express": "^5.2.1",
-        "pg": "^8.20.0"
+        "@grpc/proto-loader": "^0.8.1"
     },
     "devDependencies": {
-        "@types/express": "^5.0.6",
         "@types/node": "^22.19.19",
-        "@types/pg": "^8.20.0",
         "grpc-tools": "^1.13.1",
         "ts-proto": "^2.11.8",
         "tsx": "^4.22.3",
