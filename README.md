@@ -19,7 +19,7 @@ A hands-on Kubernetes learning project. Each stage introduces one new concept an
 | s12 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns (Flyway DB migrations via initContainer or pre-deploy Job; `pg_dump` CronJob for the s5 Postgres StatefulSet) |
 | s13 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers |
 | s14 | GitOps | ArgoCD, declarative deploys, drift detection |
-| s15 | Security hardening | External Secrets, Pod Security Standards, Kyverno, Trivy |
+| s15 | Security hardening | External Secrets, Pod Security Standards, Kyverno (policy engine), Trivy (image scanning), Falco (runtime threat detection) |
 | s16 | Resilience | PDB (incl. the Postgres PDB flagged in s5), ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
 | s17 | Operators + CRDs | build a tiny operator with kubebuilder |
 | s18 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager, human RBAC via IAM + EKS Access Entries (bind ClusterRoles to IAM users/groups) |

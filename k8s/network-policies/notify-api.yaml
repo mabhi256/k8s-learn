@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-notify-api
+spec:
+  podSelector:
+    matchLabels:
+      app: notify-api
+  policyTypes: [Ingress]
+  ingress:
+    # in-cluster: only users-api
+    - from:
+        - podSelector:
+            matchLabels:
+              app: users-api
+      ports:
+        - port: 50051
+          protocol: TCP
+    # external via LB: traffic arrives from outside the Pod network
+    # (no namespaceSelector / podSelector means "any source")
+    - ports:
+        - port: 50051
+          protocol: TCP
+      from: []   # explicit allow-from-anywhere for LB traffic; tighten in s12
