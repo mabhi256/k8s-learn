@@ -19,6 +19,7 @@ spec:
       labels:
         app: users-api
     spec:
+      serviceAccountName: users-api
       containers:
       - name: users-api
         image: users-api:local-v1

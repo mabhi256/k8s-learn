@@ -15,6 +15,7 @@ spec:
       labels:
         app: postgres
     spec:
+      serviceAccountName: postgres
       terminationGracePeriodSeconds: 30
       affinity:
         podAntiAffinity:

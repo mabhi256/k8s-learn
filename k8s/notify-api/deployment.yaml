@@ -19,6 +19,7 @@ spec:
       labels:
         app: notify-api
     spec:
+      serviceAccountName: notify-api
       containers:
       - name: notify-api
         image: notify-api:local-v1
