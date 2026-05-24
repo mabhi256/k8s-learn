@@ -14,16 +14,17 @@ A hands-on Kubernetes learning project. Each stage introduces one new concept an
 | s7 | NetworkPolicy | swap kindnet for Calico, default-deny ingress, explicit allow rules for each flow (frontend→users-api, users-api→postgres, users-api→notify-api, ext→notify-api) |
 | s8 | ServiceAccounts | per-workload `ServiceAccount`, `automountServiceAccountToken: false` to remove the API-server token attack surface (AuthN side) |
 | s9 | RBAC | `Role` / `ClusterRole` / `RoleBinding` / `ClusterRoleBinding`, human access via x509 client certs on kind (`CN=alice/O=devs` bound to built-in `view`), `resourceNames` gotcha (AuthZ side) |
-| s10 | HPA | `HorizontalPodAutoscaler`, metrics-server, CPU-based scaling, load test with `hey`, scale-up vs scale-down behavior |
+| s10 | HPA | `HorizontalPodAutoscaler`, metrics-server, CPU/memory-based scaling, load test with `hey`, scale-up vs scale-down behavior; VPA covered conceptually (modes, HPA-vs-VPA conflict) with actual install deferred to s12 |
 | s11 | Helm + observability | Helm chart, Prometheus + Grafana (metrics, via CRDs: `ServiceMonitor`, `PrometheusRule`), Loki (logs), Tempo + OpenTelemetry (tracing) |
-| s12 | Service mesh | Istio or Linkerd, mTLS, traffic shaping (canary, blue/green, app `api/v1` and `api/v2` running side-by-side with weighted/header-based routing), circuit breaking |
-| s13 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns (Flyway DB migrations via initContainer or pre-deploy Job; `pg_dump` CronJob for the s5 Postgres StatefulSet) |
-| s14 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers |
-| s15 | GitOps | ArgoCD, declarative deploys, drift detection |
-| s16 | Security hardening | External Secrets, Pod Security Standards, Kyverno (policy engine), Trivy (image scanning), Falco (runtime threat detection) |
-| s17 | Resilience | PDB (incl. the Postgres PDB flagged in s5), ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
-| s18 | Operators + CRDs | build a tiny operator with kubebuilder |
-| s19 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager, human RBAC via IAM + EKS Access Entries (bind ClusterRoles to IAM users/groups) |
+| s12 | Advanced autoscaling | VPA via Fairwinds Helm chart (right-sizes `resources.requests`, modes `Off` / `Recreate` / `InPlaceOrRecreate`), prometheus-adapter to register `custom.metrics.k8s.io`, capstone HPA scaling users-api on a scraped metric (e.g. `http_requests_per_second`) |
+| s13 | Service mesh | Istio or Linkerd, mTLS, traffic shaping (canary, blue/green, app `api/v1` and `api/v2` running side-by-side with weighted/header-based routing), circuit breaking |
+| s14 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns (Flyway DB migrations via initContainer or pre-deploy Job; `pg_dump` CronJob for the s5 Postgres StatefulSet) |
+| s15 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers; contrast `ScaledObject` against the vanilla HPA + prometheus-adapter setup from s12 (why KEDA exists: scale-to-zero, multi-trigger, built-in SQS/Kafka/cron scalers without Prometheus in the middle) |
+| s16 | GitOps | ArgoCD, declarative deploys, drift detection |
+| s17 | Security hardening | External Secrets, Pod Security Standards, Kyverno (policy engine), Trivy (image scanning), Falco (runtime threat detection) |
+| s18 | Resilience | PDB (incl. the Postgres PDB flagged in s5), ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
+| s19 | Operators + CRDs | build a tiny operator with kubebuilder |
+| s20 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager, human RBAC via IAM + EKS Access Entries (bind ClusterRoles to IAM users/groups) |
 
 See [docs/](docs/) for per-stage notes with commands, reasoning, and what each concept teaches.
 
@@ -31,7 +32,7 @@ See [docs/](docs/) for per-stage notes with commands, reasoning, and what each c
 
 ## Local vs cloud
 
-Everything from **s0–s18 runs entirely on [kind](https://kind.sigs.k8s.io/) with open-source tools. s19 is the only stage that requires AWS**
+Everything from **s0–s19 runs entirely on [kind](https://kind.sigs.k8s.io/) with open-source tools. s20 is the only stage that requires AWS**
 
 | AWS service                    | Local equivalent used in earlier stages          |
 | ------------------------------ | ------------------------------------------------ |
@@ -41,13 +42,13 @@ Everything from **s0–s18 runs entirely on [kind](https://kind.sigs.k8s.io/) wi
 | RDS                            | Postgres StatefulSet + PVC (s5)                  |
 | ElastiCache                    | Redis Deployment, if/when added                  |
 | ECR                            | `kind load docker-image` (s1+)                   |
-| Secrets Manager                | External Secrets + Vault or Sealed Secrets (s16) |
+| Secrets Manager                | External Secrets + Vault or Sealed Secrets (s17) |
 | EBS / EFS CSI                  | local-path-provisioner (built into kind, s5)     |
 | Route53                        | `/etc/hosts` entry (s3)                          |
 | CloudWatch Logs/Metrics        | Prometheus + Grafana + Loki (s11)                |
 | X-Ray (tracing)                | Tempo + OpenTelemetry Collector (s11)            |
-| IAM Roles for ServiceAccounts  | no local equivalent; cloud-only concept (s19)    |
-| Karpenter / Cluster Autoscaler | no local equivalent; kind nodes are static (s19) |
+| IAM Roles for ServiceAccounts  | no local equivalent; cloud-only concept (s20)    |
+| Karpenter / Cluster Autoscaler | no local equivalent; kind nodes are static (s20) |
 
 The migration to EKS is therefore mostly a config swap (ingress class, storage class, image registry, secret backend) plus the AWS-specific identity and node-scaling pieces that have no kind analogue.
 
