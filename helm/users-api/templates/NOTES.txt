@@ -1,0 +1,4 @@
+users-api {{ .Chart.AppVersion }} installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Try:
+  curl -k https://demo.local/api/users

@@ -1,0 +1,45 @@
+image:
+  repository: users-api
+  tag: local-v1
+  pullPolicy: Never
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+# resources:
+#   requests:
+#     cpu: 100m
+#     memory: 128Mi
+#   limits:
+#     cpu: 200m
+#     memory: 256Mi
+
+# can also write like this
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits:   { cpu: 200m, memory: 256Mi }
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 50
+  targetMemoryUtilizationPercentage: 70
+
+env:
+  NOTIFY_HOST: notify-api
+  NOTIFY_PORT: "50051"
+  DB_HOST: postgres-0.postgres-headless
+  DB_PORT: "5432"
+  DB_NAME: appdb
+
+secrets:
+  DB_USER: "appuser"
+  DB_PASSWORD: "secret"
+
+nameOverride: ""
+fullnameOverride: ""

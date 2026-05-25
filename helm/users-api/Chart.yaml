@@ -1,0 +1,5 @@
+apiVersion: v2
+name: users-api
+version: 0.1.0          # chart version
+appVersion: "local-v1"  # app/image version
+description: REST API for users (k8s-learn s11)

@@ -1,3 +1,4 @@
 **/node_modules
 **/generated
 .rbac/
+get_helm.sh
