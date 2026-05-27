@@ -1,6 +1,6 @@
 image:
   repository: users-api
-  tag: local-v1
+  tag: local-v3
   pullPolicy: Never
 
 replicaCount: 2
@@ -31,15 +31,21 @@ hpa:
   targetMemoryUtilizationPercentage: 70
 
 env:
+  LOG_LEVEL: "debug"
   NOTIFY_HOST: notify-api
   NOTIFY_PORT: "50051"
   DB_HOST: postgres-0.postgres-headless
   DB_PORT: "5432"
   DB_NAME: appdb
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-opentelemetry-collector.lgtm.svc:4317"
+  OTEL_SERVICE_NAME: "users-api"
 
 secrets:
   DB_USER: "appuser"
   DB_PASSWORD: "secret"
+
+serviceMonitor:
+  enabled: true
 
 nameOverride: ""
 fullnameOverride: ""

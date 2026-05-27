@@ -5,12 +5,20 @@
     "replicaCount": { "type": "integer" },
     "hpa": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "enabled":                           { "type": "boolean" },
         "minReplicas":                       { "type": "integer" },
         "maxReplicas":                       { "type": "integer" },
         "targetCPUUtilizationPercentage":    { "type": "integer" },
         "targetMemoryUtilizationPercentage": { "type": "integer" }
+      }
+    },
+    "serviceMonitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" }
       }
     }
   }

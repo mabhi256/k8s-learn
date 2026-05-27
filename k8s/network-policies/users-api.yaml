@@ -18,6 +18,9 @@ spec:
         - podSelector:
             matchLabels:
               app: frontend
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: lgtm
       ports:
         - port: 3000
           protocol: TCP

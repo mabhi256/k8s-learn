@@ -22,3 +22,11 @@ spec:
         - port: 50051
           protocol: TCP
       from: []   # explicit allow-from-anywhere for LB traffic; tighten in s12
+    # Prometheus scrape from lgtm namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: lgtm
+      ports:
+        - port: 9091
+          protocol: TCP

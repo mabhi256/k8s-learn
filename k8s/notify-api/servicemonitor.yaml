@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: notify-api
+  namespace: lgtm
+spec:
+  namespaceSelector:
+    matchNames:
+      - default
+  selector:
+    matchLabels:
+      app: notify-api
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics

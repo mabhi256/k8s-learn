@@ -1,7 +1,7 @@
 import { Router } from "express";
+import { Action } from "../generated/notify.js";
 import { pool } from "./db";
 import { notify } from "./notifyClient";
-import { Action } from "../generated/notify.js";
 
 const router = Router();
 
@@ -18,6 +18,7 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", async (req, res) => {
     const { name, email } = req.body
+    req.log.debug({ name, email }, "creating user");
     if (!name || !email) return res.status(422).json({ error: "user name and email required" })
     const { rows } = await pool.query(
         "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *",
@@ -36,7 +37,9 @@ router.post("/", async (req, res) => {
 })
 
 router.delete("/:id", async (req, res) => {
-    const { rows } = await pool.query("DELETE FROM users WHERE id = $1 RETURNING *", [req.params.id]);
+    const id = req.params.id
+    req.log.debug({ id }, "deleting user");
+    const { rows } = await pool.query("DELETE FROM users WHERE id = $1 RETURNING *", [id]);
     if (!rows[0]) {
        res.sendStatus(404)
        return

@@ -22,10 +22,15 @@ spec:
       serviceAccountName: notify-api
       containers:
       - name: notify-api
-        image: notify-api:local-v1
+        image: notify-api:local-v2
         imagePullPolicy: Never
         ports:
           - containerPort: 50051
+          - containerPort: 9091
+            name: metrics
+        envFrom:
+          - configMapRef:
+              name: notify-api-config
         resources:
           requests:
             cpu: 50m

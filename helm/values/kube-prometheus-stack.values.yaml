@@ -1,0 +1,69 @@
+# dont work with kind
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 6h # Mimir owns long-term; Prometheus is a buffer
+    serviceMonitorSelectorNilUsesHelmValues: false # pick up ServiceMonitors from any namespace, not just the chart's release label
+    remoteWrite:
+      - url: http://mimir-gateway.lgtm.svc/api/v1/push
+        # writeRelabelConfigs to drop noisy metrics here in prod
+    resources:
+      requests: { cpu: 100m, memory: 400Mi }   # kind is small
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 2Gi
+
+grafana:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: ca-issuer
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - grafana.demo.local
+    tls:
+      - secretName: grafana-local-tls
+        hosts:
+          - grafana.demo.local
+  adminPassword: "admin"           # local kind only; production uses External Secrets (s19)
+  defaultDashboardsTimezone: browser
+  additionalDataSources:           # the bundled Prometheus is auto-added; we add the other three
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki-gateway.lgtm.svc
+      jsonData:
+        derivedFields:
+          - name: TraceID
+            matcherRegex: '"trace_id":"(\w+)"'
+            url: '$${__value.raw}'
+            urlDisplayLabel: "View Trace"
+            datasourceUid: tempo
+            internalLink: true
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      url: http://tempo.lgtm.svc:3200
+      jsonData:
+        tracesToLogs:
+          datasourceUid: loki
+          filterByTraceID: true
+          filterBySpanID: false
+          tags:
+            - service.name
+    - name: Mimir
+      type: prometheus
+      uid: mimir
+      url: http://mimir-gateway.lgtm.svc/prometheus

@@ -22,7 +22,7 @@
 {{- define "users-api.labels" -}}
 helm.sh/chart: {{ include "users-api.chart" . }}
 {{ include "users-api.selectorLabels" . }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ .Values.image.tag | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 

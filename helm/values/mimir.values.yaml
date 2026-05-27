@@ -1,0 +1,33 @@
+mimir:
+  structuredConfig:
+    common:
+      storage:
+        backend: filesystem
+        filesystem:
+          dir: /data
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/blocks
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/ruler
+    alertmanager:
+      data_dir: /data/alertmanager-data
+    compactor:
+      data_dir: /data/compactor-tmp
+    ruler:
+      rule_path: /data/ruler-tmp
+
+# 1 replica everywhere
+distributor:    { replicas: 1 }
+ingester:       { replicas: 1, zoneAwareReplication: { enabled: false } }
+querier:        { replicas: 1 }
+query_frontend: { replicas: 1 }
+store_gateway:  { replicas: 1, zoneAwareReplication: { enabled: false } }
+compactor:      { replicas: 1 }
+ruler:          { replicas: 1 }
+
+minio:
+  enabled: false                   # filesystem backend, no S3-compat needed

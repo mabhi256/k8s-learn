@@ -1,0 +1,20 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "users-api.fullname" . }}
+  namespace: lgtm
+  labels:
+    {{- include "users-api.labels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - default
+  selector:
+    matchLabels:
+      {{- include "users-api.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http              # matches the named port in service.yaml
+      path: /metrics
+      interval: 15s
+{{- end }}
