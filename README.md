@@ -18,15 +18,17 @@ A hands-on Kubernetes learning project. Each stage introduces one new concept an
 | s11 | Helm | chart anatomy (`Chart.yaml`, `values.yaml`, `templates/`, `_helpers.tpl`), package `users-api` as a chart, `helm install/upgrade/rollback`, replace s10's manual metrics-server install with `helm install` |
 | s12 | LGTM observability | full LGTM stack via Helm: Mimir (long-term metrics, multi-tenant Prometheus-compatible TSDB), Loki (logs), Tempo + OpenTelemetry (traces), Grafana (UI); Prometheus reframed as the scraper that `remote_write`s to Mimir; Alloy for log shipping; instrument `users-api` and `notify-api` with `prom-client` + OTel SDK; CRDs: `ServiceMonitor`, `PrometheusRule`; Kustomize as a Helm post-renderer to patch fields the `kube-prometheus-stack` chart doesn't expose via `values.yaml` |
 | s13 | Advanced HPA + VPA | VPA via Fairwinds Helm chart (right-sizes `resources.requests`, modes `Off` / `Recreate` / `InPlaceOrRecreate`), prometheus-adapter to register `custom.metrics.k8s.io`, capstone HPA scaling users-api on a scraped metric (e.g. `http_requests_per_second`) |
-| s14 | Service mesh | Istio or Linkerd, mTLS, traffic shaping (canary, blue/green, app `api/v1` and `api/v2` running side-by-side with weighted/header-based routing), circuit breaking |
-| s15 | Progressive delivery | Argo Rollouts, `Rollout` CRD as a drop-in for `Deployment`, canary with `AnalysisTemplate` querying Mimir (s12) for metric-gated promotion (e.g. error-rate SLO), automated rollback on breach, blue/green with preview Service; uses s14 Istio `VirtualService` as the traffic backend; contrast with the manual weight editing from s14 |
-| s16 | Jobs + DaemonSets | batch, cron, per-node workloads, init/sidecar patterns (Flyway DB migrations via initContainer or pre-deploy Job; `pg_dump` CronJob for the s5 Postgres StatefulSet) |
-| s17 | KEDA | event-driven autoscaling, scale-to-zero, cron/queue/Prometheus scalers; contrast `ScaledObject` against the vanilla HPA + prometheus-adapter setup from s13 (why KEDA exists: scale-to-zero, multi-trigger, built-in SQS/Kafka/cron scalers without Prometheus in the middle) |
-| s18 | GitOps | ArgoCD, declarative deploys, drift detection; sync the s15 `Rollout` resources from git so progressive delivery is also GitOps-driven (closes the loop git → ArgoCD → Argo Rollouts → Istio) |
-| s19 | Security hardening | External Secrets, Pod Security Standards, Kyverno (policy engine), Trivy (image scanning), Falco (runtime threat detection) |
-| s20 | Resilience | PDB (incl. the Postgres PDB flagged in s5), ResourceQuota, LimitRange, Velero backups, scheduling (nodeSelector, affinity, taints/tolerations, topology spread) |
-| s21 | Operators + CRDs | build a tiny operator with kubebuilder |
-| s22 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager, human RBAC via IAM + EKS Access Entries (bind ClusterRoles to IAM users/groups) |
+| s14 | Service mesh (sidecar) | Istio sidecar model, mTLS via a per-Pod Envoy, traffic shaping (canary, blue/green, app `api/v1` and `api/v2` side-by-side with weighted/header-based routing) via `VirtualService`/`DestinationRule`, circuit breaking; the per-Pod cost that motivates s15; Istio-vs-Linkerd comparison |
+| s15 | Ambient mesh + Gateway API | Istio ambient mode: per-node `ztunnel` (L4 mTLS, HBONE) replaces sidecars, opt-in per-namespace **waypoint** for L7; migrate s14 off sidecars with no restart; Kubernetes **Gateway API** (`GatewayClass`/`Gateway`/`HTTPRoute`/`GRPCRoute`) replaces the frozen `Ingress` (s3) and `VirtualService`; GAMMA east-west routing; redo the s14 canary with weighted `HTTPRoute` `backendRefs` |
+| s16 | Progressive delivery | Argo Rollouts, `Rollout` CRD as a drop-in for `Deployment`, canary with `AnalysisTemplate` querying Mimir (s12) for metric-gated promotion (error-rate SLO), automated rollback on breach, blue/green with preview Service; drives s15's Gateway API `HTTPRoute` weights via the Argo Rollouts Gateway API plugin; contrast with manual weight editing from s15 |
+| s17 | Jobs + DaemonSets | batch, cron, per-node workloads; one-off Job (DB seed), CronJob (`pg_dump` backup), initContainer pattern for migrations (Flyway), DaemonSet anatomy (Alloy + node-exporter from s12 explained); initContainer vs standalone Job trade-off |
+| s18 | Operators + CRDs | operator pattern (CRD = schema, CR = instance, operator = reconcile loop); CloudNativePG: `Cluster` CR, primary + replica HA failover (<10 s), continuous WAL archiving, PgBouncer, PodMonitor; migrate from s5 StatefulSet; using vs building operators |
+| s19 | KEDA | `ScaledObject` CRD replaces prometheus-adapter + custom-metric HPA from s13; Prometheus, cron, PostgreSQL, SQS scalers; scale-to-zero; `ScaledJob` for batch; contrast with s13 setup |
+| s20 | GitOps | ArgoCD, declarative deploys, drift detection + auto-revert (`selfHeal`), App of Apps pattern, sync waves + hooks (PreSync migration Job from s17), `ApplicationSet`; contrast push (CI/CD) vs pull (GitOps); closes the loop git → ArgoCD → Argo Rollouts → Istio |
+| s21 | Security hardening | External Secrets Operator (Fake provider locally → Vault/AWS SM in prod), Pod Security Standards (`restricted` profile, `enforce`/`audit`/`warn` modes), Kyverno (validate/mutate/generate), egress NetworkPolicy (default-deny + allowlist + DNS), Trivy (static image scanning), Falco (runtime syscall threat detection) |
+| s22 | Resilience | PDB (`minAvailable`, VPA/drain interaction; closes the s5 Postgres PDB gap), ResourceQuota, LimitRange, PriorityClass (eviction order under pressure), Velero backup + restore |
+| s23 | Advanced Scheduling | nodeSelector, node affinity (`requiredDuringScheduling` / `preferredDuringScheduling`), pod anti-affinity for replica spread across failure domains, taints + tolerations for dedicated nodes, topology spread constraints |
+| s24 | EKS migration | IRSA, ALB controller, Karpenter, EBS CSI, ECR, Secrets Manager, human RBAC via IAM + EKS Access Entries (bind ClusterRoles to IAM users/groups) |
 
 See [docs/](docs/) for per-stage notes with commands, reasoning, and what each concept teaches.
 
@@ -34,23 +36,23 @@ See [docs/](docs/) for per-stage notes with commands, reasoning, and what each c
 
 ## Local vs cloud
 
-Everything from **s0–s21 runs entirely on [kind](https://kind.sigs.k8s.io/) with open-source tools. s22 is the only stage that requires AWS**
+Everything from **s0–s23 runs entirely on [kind](https://kind.sigs.k8s.io/) with open-source tools. s24 is the only stage that requires AWS**
 
 | AWS service                    | Local equivalent used in earlier stages          |
 | ------------------------------ | ------------------------------------------------ |
-| ALB                            | nginx-ingress (s3)                               |
+| ALB                            | nginx-ingress (s3) → Gateway API (s15)           |
 | NLB (LoadBalancer service)     | Cloud Provider KIND: Postgres (s5), gRPC (s6)    |
 | ACM (TLS certs)                | cert-manager + self-signed CA (s4)               |
 | RDS                            | Postgres StatefulSet + PVC (s5)                  |
 | ElastiCache                    | Redis Deployment, if/when added                  |
 | ECR                            | `kind load docker-image` (s1+)                   |
-| Secrets Manager                | External Secrets + Vault or Sealed Secrets (s18) |
+| Secrets Manager                | External Secrets + Vault or Sealed Secrets (s21) |
 | EBS / EFS CSI                  | local-path-provisioner (built into kind, s5)     |
 | Route53                        | `/etc/hosts` entry (s3)                          |
 | CloudWatch Logs/Metrics        | Mimir + Loki via Grafana (s12)                   |
 | X-Ray (tracing)                | Tempo + OpenTelemetry Collector (s12)            |
-| IAM Roles for ServiceAccounts  | no local equivalent; cloud-only concept (s22)    |
-| Karpenter / Cluster Autoscaler | no local equivalent; kind nodes are static (s22) |
+| IAM Roles for ServiceAccounts  | no local equivalent; cloud-only concept (s24)    |
+| Karpenter / Cluster Autoscaler | no local equivalent; kind nodes are static (s24) |
 
 The migration to EKS is therefore mostly a config swap (ingress class, storage class, image registry, secret backend) plus the AWS-specific identity and node-scaling pieces that have no kind analogue.
 
