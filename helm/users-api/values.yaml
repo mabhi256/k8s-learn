@@ -29,6 +29,10 @@ hpa:
   maxReplicas: 6
   targetCPUUtilizationPercentage: 50
   targetMemoryUtilizationPercentage: 70
+  customMetric:
+    enabled: true
+    name: http_requests_per_second
+    targetAverageValue: "10"
 
 env:
   LOG_LEVEL: "debug"
@@ -46,6 +50,20 @@ secrets:
 
 serviceMonitor:
   enabled: true
+  namespace: lgtm
+
+vpa:
+  enabled: true
+  updateMode: InPlaceOrRecreate
+  minAllowed:
+    cpu: 25m
+    memory: 64Mi
+  maxAllowed:
+    cpu: 500m
+    memory: 512Mi
+  controlledResources:
+    - cpu
+    - memory
 
 nameOverride: ""
 fullnameOverride: ""

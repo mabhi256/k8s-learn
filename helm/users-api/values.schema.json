@@ -11,14 +11,24 @@
         "minReplicas":                       { "type": "integer" },
         "maxReplicas":                       { "type": "integer" },
         "targetCPUUtilizationPercentage":    { "type": "integer" },
-        "targetMemoryUtilizationPercentage": { "type": "integer" }
+        "targetMemoryUtilizationPercentage": { "type": "integer" },
+        "customMetric": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled":             { "type": "boolean" },
+            "name":                { "type": "string" },
+            "targetAverageValue":  { "type": "string" }
+          }
+        }
       }
     },
     "serviceMonitor": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "type": "boolean" }
+        "enabled":   { "type": "boolean" },
+        "namespace": { "type": "string" }
       }
     }
   }

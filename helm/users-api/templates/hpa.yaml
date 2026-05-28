@@ -13,6 +13,15 @@ spec:
   minReplicas: {{ .Values.hpa.minReplicas }}
   maxReplicas: {{ .Values.hpa.maxReplicas }}
   metrics:
+    {{- if .Values.hpa.customMetric.enabled }}
+    - type: Pods
+      pods:
+        metric:
+          name: {{ .Values.hpa.customMetric.name }}
+        target:
+          type: AverageValue
+          averageValue: {{ .Values.hpa.customMetric.targetAverageValue }}
+    {{- else }}
     - type: Resource
       resource:
         name: cpu
@@ -25,4 +34,5 @@ spec:
         target:
           type: Utilization
           averageUtilization: {{ .Values.hpa.targetMemoryUtilizationPercentage }}
+    {{- end }}
 {{- end }}

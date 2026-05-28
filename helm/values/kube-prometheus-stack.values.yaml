@@ -12,9 +12,6 @@ prometheus:
   prometheusSpec:
     retention: 6h # Mimir owns long-term; Prometheus is a buffer
     serviceMonitorSelectorNilUsesHelmValues: false # pick up ServiceMonitors from any namespace, not just the chart's release label
-    remoteWrite:
-      - url: http://mimir-gateway.lgtm.svc/api/v1/push
-        # writeRelabelConfigs to drop noisy metrics here in prod
     resources:
       requests: { cpu: 100m, memory: 400Mi }   # kind is small
     storageSpec:

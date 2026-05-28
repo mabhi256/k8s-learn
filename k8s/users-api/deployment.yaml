@@ -21,7 +21,7 @@ spec:
       serviceAccountName: users-api
       containers:
       - name: users-api
-        image: users-api:local-v1
+        image: users-api:local-v3
         imagePullPolicy: Never
         ports:
           - containerPort: 3000
@@ -35,7 +35,7 @@ spec:
             cpu: 100m
             memory: 128Mi
           limits:
-            cpu: "250m"
+            cpu: "200m"
             memory: "256Mi"
         startupProbe:
           httpGet:

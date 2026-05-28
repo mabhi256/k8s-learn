@@ -1,0 +1,4 @@
+prometheus:
+  prometheusSpec:
+    remoteWrite:
+      - url: http://mimir-gateway.lgtm.svc/api/v1/push

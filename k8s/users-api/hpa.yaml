@@ -12,16 +12,24 @@ spec:
   minReplicas: 2
   maxReplicas: 6
   metrics:
-    # scale when either crosses threshold
-    - type: Resource
-      resource:
-        name: cpu
+    # s13: scale on RPS via prometheus-adapter custom metric
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
         target:
-          type: Utilization
-          averageUtilization: 50
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 70
+          type: AverageValue
+          averageValue: "10"
+    # s10 CPU/memory fallback — uncomment to trigger the VPA+HPA feedback loop (see s13 §2)
+    # - type: Resource
+    #   resource:
+    #     name: cpu
+    #     target:
+    #       type: Utilization
+    #       averageUtilization: 50
+    # - type: Resource
+    #   resource:
+    #     name: memory
+    #     target:
+    #       type: Utilization
+    #       averageUtilization: 70

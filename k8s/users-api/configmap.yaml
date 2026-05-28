@@ -6,8 +6,11 @@ metadata:
     app: users-api
 
 data:
+  LOG_LEVEL: "debug"
+  NOTIFY_HOST: "notify-api"
+  NOTIFY_PORT: "50051"
   DB_HOST: "postgres-0.postgres-headless"
   DB_PORT: "5432"
   DB_NAME: "appdb"
-  NOTIFY_HOST: "notify-api"
-  NOTIFY_PORT: "50051"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-opentelemetry-collector.lgtm.svc:4317"
+  OTEL_SERVICE_NAME: "users-api"

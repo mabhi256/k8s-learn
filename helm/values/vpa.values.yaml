@@ -1,0 +1,15 @@
+recommender:
+  enabled: true
+  extraArgs:
+    history-length: 8d
+    pod-recommendation-min-cpu-millicores: 25
+    pod-recommendation-min-memory-mb: 100
+    oom-bump-up-ratio: "1.2"
+
+updater:
+  enabled: true
+
+admissionController:
+  enabled: true
+  certGen:
+    enabled: true
