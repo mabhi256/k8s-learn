@@ -35,14 +35,13 @@ echo $INGRESS_IP   # confirm non-empty before continuing
 ## 3. Update WSL /etc/hosts
 
 ```bash
-# Replace any existing demo.local line, or add it:
-sudo sed -i "s/.*demo\.local/$INGRESS_IP demo.local/" /etc/hosts
 
-# If no line exists yet:
-grep -q demo.local /etc/hosts || echo "$INGRESS_IP demo.local" | sudo tee -a /etc/hosts
-
-# Confirm:
-grep demo.local /etc/hosts
+# check if demo.local line exists                   
+grep -q "demo\.local" /etc/hosts \
+  # If yes, update it
+  && sudo sed -i "s/.*demo\.local/$INGRESS_IP demo.local/" /etc/hosts \
+  # else add line
+  || echo "$INGRESS_IP demo.local" | sudo tee -a /etc/hosts
 ```
 
 ---
@@ -67,16 +66,18 @@ cloud-provider-kind re-adds the aliases on each reconcile cycle. If curl stops w
 
 ---
 
-## 5. Find the kindccm HTTPS port (PowerShell)
+## 5. Find the kindccm HTTPS port (WSL)
 
 cloud-provider-kind creates `kindccm-*` containers that forward service ports to random high ports on `0.0.0.0`. The port changes every time the cluster is recreated.
 
-```powershell
-docker ps --format "table {{.Names}}`t{{.Ports}}" | findstr kindccm
-# kindccm-xxxx   0.0.0.0:32768->80/tcp, 0.0.0.0:32769->443/tcp, ...
+Run in WSL (PowerShell's docker connects to a different daemon and won't see these containers):
+
+```bash
+docker ps | grep kindccm
+# kindccm-xxxx   ... 0.0.0.0:32782->80/tcp, 0.0.0.0:32783->443/tcp ...
 ```
 
-Note the port before `->443/tcp` (e.g. `32769`).
+Look for the container with `->80/tcp` and `->443/tcp` (the ingress-nginx one. It won't have Istio ports like `15021`). Note the port before `->443/tcp` (e.g. `32783`).
 
 ---
 
@@ -88,7 +89,7 @@ Point `demo.local` to Windows localhost, **not** to the cluster IP (`172.x.x.x` 
 # Check what's already there:
 Get-Content C:\Windows\System32\drivers\etc\hosts | Select-String "demo.local"
 
-# Remove stale entries if present (any 172.x.x.x lines):
+# Remove any 172.x.x.x lines (these are cluster IP which change every time):
 $content = Get-Content C:\Windows\System32\drivers\etc\hosts
 $content | Where-Object { $_ -notmatch '172\.\d+\.\d+\.\d+.*demo\.local' } |
   Set-Content C:\Windows\System32\drivers\etc\hosts
@@ -140,31 +141,29 @@ The cert is self-signed by `demo-root-ca`. Without importing it, the browser sho
 **Extract the CA cert from PowerShell (do not use Out-File, it corrupts the PEM):**
 
 ```powershell
+# Admin PowerShell
 wsl -e sh -c "kubectl get secret demo-root-ca-tls -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt"
 
 $desktop = [Environment]::GetFolderPath("Desktop")
+# Note: $env:USERPROFILE\Desktop may differ if OneDrive redirects Desktop
 Copy-Item "\\wsl$\Ubuntu\tmp\ca.crt" "$desktop\ca.crt"
 
 certutil -verify "$desktop\ca.crt"
-# Should show: Verified Issuance Policies: All
+# Should show: Verifies against UNTRUSTED root
+
+certutil -addstore -f "Root" "$desktop\ca.crt"
 ```
 
-**Import into Windows trust store (Admin PowerShell):**
+**Firefox/Chrome extra step:**
 
-```powershell
-certutil -addstore -f "Root" "$env:USERPROFILE\Desktop\ca.crt"
-```
+Browsers ignore the Windows trust store. Import separately:
+Settings → search **Certificates** → **View Certificates** → **Authorities** tab → **Import** → select `ca.crt` → check "Trust this CA to identify websites" → OK → restart browser.
 
-Restart Chrome or Edge. Remove later with:
+**Remove later with**:
 
 ```powershell
 certutil -delstore "Root" "demo-root-ca"
 ```
-
-**Firefox extra step:**
-
-Firefox ignores the Windows trust store. Import separately:
-Settings → search **Certificates** → **View Certificates** → **Authorities** tab → **Import** → select `ca.crt` → check "Trust this CA to identify websites" → OK → restart Firefox.
 
 ---
 
@@ -207,14 +206,14 @@ Windows browser  https://demo.local
 
 Steps 1–4 and 7 must be repeated. Steps 6 and 9 only need repeating if the cluster was deleted and recreated (IP and cert change).
 
-| Step | When |
-|------|------|
-| 1 – Start cloud-provider-kind | Every terminal session |
-| 2 – Get INGRESS_IP | Every cluster start |
-| 3 – Update WSL /etc/hosts | Every cluster start (IP may change) |
-| 4 – Remove loopback aliases | Every cluster start; repeat if curl breaks |
-| 5 – Find kindccm port | Every cluster start |
-| 6 – Windows hosts file | Once, or after cluster recreate |
-| 7 – Update port proxy | Every cluster start (port changes) |
-| 8 – Check TLS cert | After cluster recreate |
-| 9 – Import CA in browser | Once per cluster lifetime |
+| Step                         |                                     When   |
+|------------------------------|--------------------------------------------|
+| 1. Start cloud-provider-kind | Every terminal session                     |
+| 2. Get INGRESS_IP            | Every cluster start                        |
+| 3. Update WSL /etc/hosts     | Every cluster start (IP may change)        |
+| 4. Remove loopback aliases   | Every cluster start; repeat if curl breaks |
+| 5. Find kindccm port         | Every cluster start                        |
+| 6. Windows hosts file        | Once, or after cluster recreate            |
+| 7. Update port proxy         | Every cluster start (port changes)         |
+| 8. Check TLS cert            | After cluster recreate                     |
+| 9. Import CA in browser      | Once per cluster lifetime                  |

@@ -1,0 +1,22 @@
+{{- if .Values.istio.destinationRule.enabled }}
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ include "users-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: {{ include "users-api.fullname" . }}
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: {{ .Values.istio.destinationRule.outlierDetection.consecutive5xxErrors }}
+      interval: {{ .Values.istio.destinationRule.outlierDetection.interval }}
+      baseEjectionTime: {{ .Values.istio.destinationRule.outlierDetection.baseEjectionTime }}
+      maxEjectionPercent: {{ .Values.istio.destinationRule.outlierDetection.maxEjectionPercent }}
+  subsets:
+    - name: {{ .Values.version }}
+      labels:
+        version: {{ .Values.version }}
+    - name: {{ .Values.canary.version }}
+      labels:
+        version: {{ .Values.canary.version }}
+{{- end }}

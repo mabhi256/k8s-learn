@@ -1,0 +1,24 @@
+{{- if .Values.istio.virtualService.enabled }}
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ include "users-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  hosts:
+    - {{ include "users-api.fullname" . }}
+  http:
+    - route:
+        - destination:
+            host: {{ include "users-api.fullname" . }}
+            subset: {{ .Values.version }}
+          weight: {{ .Values.istio.virtualService.stableWeight }}
+        - destination:
+            host: {{ include "users-api.fullname" . }}
+            subset: {{ .Values.canary.version }}
+          weight: {{ .Values.istio.virtualService.canaryWeight }}
+      retries:
+        attempts: {{ .Values.istio.virtualService.retries.attempts }}
+        retryOn: {{ .Values.istio.virtualService.retries.retryOn }}
+      timeout: {{ .Values.istio.virtualService.timeout }}
+{{- end }}

@@ -1,16 +1,16 @@
+{{- if .Values.canary.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "users-api.fullname" . }}
+  name: {{ include "users-api.fullname" . }}-{{ .Values.canary.version }}
   labels:
     {{- include "users-api.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.hpa.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: {{ .Values.canary.replicaCount }}
   selector:
     matchLabels:
       {{- include "users-api.selectorLabels" . | nindent 6 }}
+      version: {{ .Values.canary.version }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -21,15 +21,13 @@ spec:
       labels:
         {{- include "users-api.selectorLabels" . | nindent 8 }}
         app: {{ include "users-api.name" . }}
-        {{- if .Values.version }}
-        version: {{ .Values.version }}
-        {{- end }}
+        version: {{ .Values.canary.version }}
     spec:
       serviceAccountName: {{ include "users-api.fullname" . }}
       containers:
         - name: users-api
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.canary.image.repository }}:{{ .Values.canary.image.tag }}"
+          imagePullPolicy: {{ .Values.canary.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
           envFrom:
@@ -61,3 +59,4 @@ spec:
             preStop:
               exec:
                 command: ["sh", "-c", "sleep 5"]
+{{- end }}

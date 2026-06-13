@@ -1,0 +1,4 @@
+apiVersion: v2
+name: dashboards
+description: Grafana dashboard ConfigMaps for the k8s-learn tutorial
+version: 0.1.0

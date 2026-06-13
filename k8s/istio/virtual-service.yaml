@@ -1,0 +1,22 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: users-api
+  namespace: default
+spec:
+  hosts:
+    - users-api
+  http:
+    - route:
+        - destination:
+            host: users-api
+            subset: v1
+          weight: 95
+        - destination:
+            host: users-api
+            subset: v2
+          weight: 5
+      retries:
+        attempts: 2
+        retryOn: 5xx
+      timeout: 5s

@@ -1,0 +1,11 @@
+{{- $dsUid := ternary "mimir" "prometheus" .Values.mimir.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apps-metrics-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  apps-metrics.json: |
+{{ .Files.Get "files/apps-metrics.json" | replace "METRICS_DS_UID" $dsUid | indent 4 }}

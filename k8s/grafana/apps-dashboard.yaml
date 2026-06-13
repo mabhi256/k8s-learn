@@ -33,42 +33,6 @@ data:
             "hide": 0
           },
           {
-            "name": "pod",
-            "label": "Pod",
-            "type": "query",
-            "datasource": { "type": "loki", "uid": "loki" },
-            "query": {
-              "label": "pod",
-              "refId": "StandardVariableQuery",
-              "stream": "{app=\"$app\"}",
-              "type": 1
-            },
-            "current": {},
-            "refresh": 2,
-            "sort": 1,
-            "includeAll": true,
-            "allValue": ".*",
-            "multi": false,
-            "hide": 0
-          },
-          {
-            "name": "method",
-            "label": "Method",
-            "type": "custom",
-            "query": ".*,GET,PUT,POST,PATCH",
-            "current": { "value": ".*", "text": "All" },
-            "options": [
-              { "value": ".*", "text": "All",   "selected": true  },
-              { "value": "GET",   "text": "GET",   "selected": false },
-              { "value": "PUT",   "text": "PUT",   "selected": false },
-              { "value": "POST",  "text": "POST",  "selected": false },
-              { "value": "PATCH", "text": "PATCH", "selected": false }
-            ],
-            "includeAll": false,
-            "multi": false,
-            "hide": 0
-          },
-          {
             "name": "level",
             "label": "Level",
             "type": "custom",
@@ -86,44 +50,48 @@ data:
             "hide": 0
           },
           {
-            "name": "path",
-            "label": "Path",
-            "type": "textbox",
-            "query": "",
-            "current": { "value": "", "text": "" },
-            "hide": 0
-          },
-          {
-            "name": "protocol",
-            "label": "Protocol",
-            "type": "custom",
-            "query": ".*,http,grpc",
-            "current": { "value": ".*", "text": "All" },
-            "options": [
-              { "value": ".*",   "text": "All",  "selected": true  },
-              { "value": "http", "text": "HTTP", "selected": false },
-              { "value": "grpc", "text": "gRPC", "selected": false }
-            ],
-            "includeAll": false,
-            "multi": false,
-            "hide": 0
-          },
-          {
             "name": "keyword",
             "label": "Keyword",
             "type": "textbox",
             "query": "",
             "current": { "value": "", "text": "" },
             "hide": 0
+          },
+          {
+            "name": "filters",
+            "label": "Filters",
+            "type": "adhoc",
+            "datasource": { "type": "loki", "uid": "loki" },
+            "hide": 0
           }
         ]
       },
       "panels": [
         {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Log Volume",
+          "description": "Log lines per second. Reflects the actual traffic reaching each pod set — useful to confirm the 95/5 canary split is live.",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "fieldConfig": {
+            "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+          },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "sum by (version) (rate({app=\"$app\", container=\"$app\"}[1m]))",
+              "legendFormat": "{{version}}"
+            }
+          ]
+        },
+        {
           "id": 1,
           "type": "logs",
           "title": "$app logs",
-          "gridPos": { "h": 22, "w": 24, "x": 0, "y": 0 },
+          "gridPos": { "h": 22, "w": 24, "x": 0, "y": 8 },
           "datasource": { "type": "loki", "uid": "loki" },
           "options": {
             "enableLogDetails": true,
@@ -137,7 +105,7 @@ data:
             {
               "refId": "A",
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "{app=\"$app\", pod=~\"$pod\"} | json | level=~\"$level\" | protocol=~\"$protocol\" | line_format \"{{if .direction}}{{if eq .direction \\\"recv\\\"}}\\u2190 recv{{else}}\\u2192 send{{end}} {{.method}} | {{.status}} | {{.ms}}ms | trace={{.trace_id}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{else if .req_method}}{{.req_method}} {{.req_url}} \\u2192 {{if eq (substr 0 1 .res_statusCode) \\\"2\\\"}}\\u001b[32m{{.res_statusCode}}\\u001b[0m{{else if eq (substr 0 1 .res_statusCode) \\\"4\\\"}}\\u001b[33m{{.res_statusCode}}\\u001b[0m{{else if eq (substr 0 1 .res_statusCode) \\\"5\\\"}}\\u001b[31m{{.res_statusCode}}\\u001b[0m{{else}}{{.res_statusCode}}{{end}} | {{.responseTime}}ms | trace={{.trace_id}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{else}}{{.msg}}{{if .trace_id}} | trace={{.trace_id}}{{end}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{end}}\""
+              "expr": "{app=\"$app\", container=\"$app\"} | json | level=~\"$level\" |= \"$keyword\" | line_format \"{{if .direction}}{{if eq .direction \\\"recv\\\"}}\\u2190 recv{{else}}\\u2192 send{{end}} {{.method}} | {{.status}} | {{.ms}}ms | trace={{.trace_id}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{else if .req_method}}{{.req_method}} {{.req_url}} \\u2192 {{if eq (substr 0 1 .res_statusCode) \\\"2\\\"}}\\u001b[32m{{.res_statusCode}}\\u001b[0m{{else if eq (substr 0 1 .res_statusCode) \\\"4\\\"}}\\u001b[33m{{.res_statusCode}}\\u001b[0m{{else if eq (substr 0 1 .res_statusCode) \\\"5\\\"}}\\u001b[31m{{.res_statusCode}}\\u001b[0m{{else}}{{.res_statusCode}}{{end}} | {{.responseTime}}ms | trace={{.trace_id}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{else}}{{.msg}}{{if .trace_id}} | trace={{.trace_id}}{{end}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{end}}\""
             }
           ]
         }

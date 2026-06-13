@@ -65,5 +65,36 @@ vpa:
     - cpu
     - memory
 
+version: v1
+
+canary:
+  enabled: false
+  version: v2
+  replicaCount: 1
+  image:
+    repository: users-api
+    tag: local-v3
+    pullPolicy: Never
+
+istio:
+  peerAuthentication:
+    enabled: false
+    mode: STRICT
+  destinationRule:
+    enabled: false
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+  virtualService:
+    enabled: false
+    stableWeight: 95
+    canaryWeight: 5
+    retries:
+      attempts: 2
+      retryOn: 5xx
+    timeout: 5s
+
 nameOverride: ""
 fullnameOverride: ""

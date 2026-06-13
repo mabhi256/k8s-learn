@@ -17,4 +17,7 @@ spec:
     - port: http              # matches the named port in service.yaml
       path: /metrics
       interval: 15s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_version]
+          targetLabel: version
 {{- end }}

@@ -30,6 +30,51 @@
         "enabled":   { "type": "boolean" },
         "namespace": { "type": "string" }
       }
+    },
+    "version": { "type": "string" },
+    "canary": {
+      "type": "object",
+      "properties": {
+        "version":      { "type": "string" },
+        "replicaCount": { "type": "integer" }
+      }
+    },
+    "istio": {
+      "type": "object",
+      "properties": {
+        "peerAuthentication": {
+          "type": "object",
+          "properties": {
+            "mode":    { "type": "string", "enum": ["STRICT", "PERMISSIVE", "DISABLE"] }
+          }
+        },
+        "destinationRule": {
+          "type": "object",
+          "properties": {
+            "outlierDetection": {
+              "type": "object",
+              "properties": {
+                "consecutive5xxErrors": { "type": "integer" },
+                "maxEjectionPercent":  { "type": "integer" }
+              }
+            }
+          }
+        },
+        "virtualService": {
+          "type": "object",
+          "properties": {
+            "stableWeight":  { "type": "integer" },
+            "canaryWeight":  { "type": "integer" },
+            "timeout":       { "type": "string" },
+            "retries": {
+              "type": "object",
+              "properties": {
+                "attempts": { "type": "integer" }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

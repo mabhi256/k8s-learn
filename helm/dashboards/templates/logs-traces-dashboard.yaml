@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apps-logs-traces-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  apps-logs-traces.json: |
+{{ .Files.Get "files/apps-logs-traces.json" | indent 4 }}

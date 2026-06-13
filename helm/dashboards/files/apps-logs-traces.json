@@ -1,0 +1,104 @@
+{
+  "title": "Apps – Logs & Traces",
+  "uid": "apps-logs-traces",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["apps", "logs", "traces"],
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "App",
+        "type": "custom",
+        "query": "notify-api,users-api",
+        "current": { "value": "users-api", "text": "users-api" },
+        "options": [
+          { "value": "users-api", "text": "users-api", "selected": true },
+          { "value": "notify-api", "text": "notify-api", "selected": false }
+        ],
+        "includeAll": false,
+        "multi": false,
+        "hide": 0
+      },
+      {
+        "name": "level",
+        "label": "Level",
+        "type": "custom",
+        "query": ".*,info,debug,warn,error",
+        "current": { "value": ".*", "text": "All" },
+        "options": [
+          { "value": ".*",    "text": "All",   "selected": true  },
+          { "value": "info",  "text": "info",  "selected": false },
+          { "value": "debug", "text": "debug", "selected": false },
+          { "value": "warn",  "text": "warn",  "selected": false },
+          { "value": "error", "text": "error", "selected": false }
+        ],
+        "includeAll": false,
+        "multi": false,
+        "hide": 0
+      },
+      {
+        "name": "keyword",
+        "label": "Keyword",
+        "type": "textbox",
+        "query": "",
+        "current": { "value": "", "text": "" },
+        "hide": 0
+      },
+      {
+        "name": "filters",
+        "label": "Filters",
+        "type": "adhoc",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Log Volume",
+      "description": "Log lines per second. Reflects the actual traffic reaching each pod set — useful to confirm the 95/5 canary split is live.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (version) (rate({app=\"$app\", container=\"$app\"}[1m]))",
+          "legendFormat": "{{version}}"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "type": "logs",
+      "title": "$app logs",
+      "gridPos": { "h": 22, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": {
+        "enableLogDetails": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false,
+        "prettifyLogMessage": true,
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{app=\"$app\", container=\"$app\"} | json | level=~\"$level\" |= \"$keyword\" | line_format \"{{if .direction}}{{if eq .direction \\\"recv\\\"}}\\u2190 recv{{else}}\\u2192 send{{end}} {{.method}} | {{.status}} | {{.ms}}ms | trace={{.trace_id}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{else if .req_method}}{{.req_method}} {{.req_url}} \\u2192 {{if eq (substr 0 1 .res_statusCode) \\\"2\\\"}}\\u001b[32m{{.res_statusCode}}\\u001b[0m{{else if eq (substr 0 1 .res_statusCode) \\\"4\\\"}}\\u001b[33m{{.res_statusCode}}\\u001b[0m{{else if eq (substr 0 1 .res_statusCode) \\\"5\\\"}}\\u001b[31m{{.res_statusCode}}\\u001b[0m{{else}}{{.res_statusCode}}{{end}} | {{.responseTime}}ms | trace={{.trace_id}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{else}}{{.msg}}{{if .trace_id}} | trace={{.trace_id}}{{end}}\\n\\u001b[2;37m{{__line__}}\\u001b[0m{{end}}\""
+        }
+      ]
+    }
+  ]
+}

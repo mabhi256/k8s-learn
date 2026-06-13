@@ -1,0 +1,337 @@
+{
+  "title": "Apps – Metrics",
+  "uid": "apps-metrics",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["apps", "metrics"],
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "label": "Job",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+        "query": "label_values({__name__=~\"http_requests_total|grpc_requests_total\"}, job)",
+        "current": {},
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": false,
+        "multi": false,
+        "hide": 0
+      },
+      {
+        "name": "version",
+        "label": "Version",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+        "query": "label_values(http_requests_total{job=\"$job\"}, version)",
+        "current": {},
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Request Rate (RPS)",
+      "description": "Requests per second, broken down by route. Spike here = real traffic or a spike in automated calls.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "sum by (version) (rate(http_requests_total{job=\"$job\", version=~\"$version\"}[1m]))",
+          "legendFormat": "{{version}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error Rate (5xx)",
+      "description": "Fraction of requests returning 5xx. Green = 0%, red threshold at 1%.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "sum by (version) (rate(http_requests_total{job=\"$job\", version=~\"$version\", status=~\"5..\"}[1m])) / sum by (version) (rate(http_requests_total{job=\"$job\", version=~\"$version\"}[1m]))",
+          "legendFormat": "{{version}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Latency Percentiles (p50 / p95 / p99)",
+      "description": "p50 is median; p95 is what 95% of users experience or better. p99 catches the tail.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "histogram_quantile(0.50, sum by (le, version) (rate(http_request_duration_seconds_bucket{job=\"$job\", version=~\"$version\"}[5m])))",
+          "legendFormat": "p50 {{version}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "histogram_quantile(0.95, sum by (le, version) (rate(http_request_duration_seconds_bucket{job=\"$job\", version=~\"$version\"}[5m])))",
+          "legendFormat": "p95 {{version}}"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "histogram_quantile(0.99, sum by (le, version) (rate(http_request_duration_seconds_bucket{job=\"$job\", version=~\"$version\"}[5m])))",
+          "legendFormat": "p99 {{version}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Node.js Heap",
+      "description": "heap used trending toward heap total means a potential memory leak.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "nodejs_heap_used_bytes{job=\"$job\"}",
+          "legendFormat": "heap used"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "nodejs_heap_size_total_bytes{job=\"$job\"}",
+          "legendFormat": "heap total"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "gRPC Call Rate",
+      "description": "Calls per second by method. Only populated for notify-api.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "sum by (method) (rate(grpc_requests_total{job=\"$job\"}[1m]))",
+          "legendFormat": "{{method}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "gRPC Error Rate (non-OK)",
+      "description": "Fraction of gRPC calls that returned a non-OK status code. Only populated for notify-api.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "sum(rate(grpc_requests_total{job=\"$job\", code!=\"OK\"}[1m])) / sum(rate(grpc_requests_total{job=\"$job\"}[1m]))",
+          "legendFormat": "error %"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "gRPC Latency Percentiles (p50 / p95 / p99)",
+      "description": "Only populated for notify-api.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(grpc_request_duration_seconds_bucket{job=\"$job\"}[5m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(grpc_request_duration_seconds_bucket{job=\"$job\"}[5m])))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(grpc_request_duration_seconds_bucket{job=\"$job\"}[5m])))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Pod Restarts",
+      "description": "Nonzero and climbing = crash loop. Check logs for the previous container.",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "kube_pod_container_restarts_total{container=\"$job\", namespace=\"default\"}",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Event Loop Lag",
+      "description": "Time a callback waits before running. >50ms means the loop is saturated by sync work.",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "nodejs_eventloop_lag_seconds{job=\"$job\"}",
+          "legendFormat": "lag"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Container CPU",
+      "description": "CPU cores consumed per pod. HPA fires when average crosses the target (s13).",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cores",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "METRICS_DS_UID" },
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{container=\"$job\", namespace=\"default\"}[2m]))",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    }
+  ]
+}
