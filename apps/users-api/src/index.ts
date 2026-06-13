@@ -31,6 +31,7 @@ app.use(express.json())
 app.use(metricsMiddleware);
 
 let startupDone = false;
+let isShuttingDown = false;
 
 function requireDB(_req: Request, res: Response, next: NextFunction) {
     if (!startupDone) return res.status(503).json({ error: "db not ready" });
@@ -45,6 +46,7 @@ app.get("/metrics", async (_req, res) => {
 app.get("/live", (_req, res) => res.json({ status: "ok" }));
 app.get("/health", async (_req, res) => {
     if (!startupDone) return res.status(503).json({ status: "starting", db: false });
+    if (isShuttingDown) return res.status(503).json({ status: "shutting down", db: false });
     try {
         await pool.query("SELECT 1");
         res.json({ status: "ok", db: true });
@@ -57,7 +59,7 @@ app.use("/users", requireDB, usersRouter);
 const PORT = process.env.PORT || 3000
 
 // async so that /live works immediately
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
     logger.info(`users-api listening on :${PORT}`)
 
     // simulate heavy startup work (cache warm-up, model loading, etc.)
@@ -69,15 +71,22 @@ app.listen(PORT, async () => {
         .then(() => { startupDone = true; })
         .catch((err) => {
             logger.error({ err: err.message }, "DB Check failed")
-            shutdown()
+            shutdown(1)
         })
 })
 
-async function shutdown() {
+function shutdown(code = 0) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     logger.info("...shutting down")
-    await pool.end()
-    process.exit(1)
+    // stop accepting new connections; wait for in-flight requests to finish
+    server.close(async () => {
+        await pool.end()
+        process.exit(code)
+    })
+    // force exit if drain takes too long
+    setTimeout(() => process.exit(code), 10_000).unref()
 }
 
-process.on("SIGTERM", shutdown)
-process.on("SIGINT", shutdown)
+process.on("SIGTERM", () => shutdown(0))
+process.on("SIGINT", () => shutdown(0))

@@ -15,6 +15,11 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: demo-gateway
       ports:
         - port: 80
+          protocol: TCP
+        - port: 15008
           protocol: TCP

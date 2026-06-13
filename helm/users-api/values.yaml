@@ -53,7 +53,7 @@ serviceMonitor:
   namespace: lgtm
 
 vpa:
-  enabled: true
+  enabled: false
   updateMode: InPlaceOrRecreate
   minAllowed:
     cpu: 25m
@@ -64,6 +64,10 @@ vpa:
   controlledResources:
     - cpu
     - memory
+
+startupProbe:
+  periodSeconds: 10
+  failureThreshold: 18
 
 version: v1
 

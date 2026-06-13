@@ -43,8 +43,8 @@ spec:
             httpGet:
               path: /health
               port: {{ .Values.service.targetPort }}
-            periodSeconds: 2
-            failureThreshold: 30
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
           livenessProbe:
             httpGet:
               path: /live

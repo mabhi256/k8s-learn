@@ -8,13 +8,15 @@ spec:
       app: notify-api
   policyTypes: [Ingress]
   ingress:
-    # in-cluster: only users-api
+    # in-cluster: only users-api; port 15008 required for ztunnel HBONE tunneling in ambient mode
     - from:
         - podSelector:
             matchLabels:
               app: users-api
       ports:
         - port: 50051
+          protocol: TCP
+        - port: 15008
           protocol: TCP
     # external via LB: traffic arrives from outside the Pod network
     # (no namespaceSelector / podSelector means "any source")
