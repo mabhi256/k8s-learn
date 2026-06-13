@@ -2,3 +2,8 @@
 **/generated
 .rbac/
 get_helm.sh
+# Added by code-review-graph
+.code-review-graph/
+# Claude Code local config
+.claude/
+.mcp.json
