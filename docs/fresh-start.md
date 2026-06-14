@@ -1,6 +1,6 @@
-# Fresh start — rebuild the cluster from zero to s14
+# Fresh start — rebuild the cluster from zero to s15
 
-> Full rebuild runbook: from no cluster to the **s14** state (Istio mesh + canary),
+> Full rebuild runbook: from no cluster to the **s15** state (Istio mesh + Jobs/CronJobs),
 > **without Mimir**. Run everything from the repo root.
 
 **Before you rebuild:** if you only restarted your PC, you do **not** need this. A reboot
@@ -16,7 +16,22 @@ beyond repair.
 
 ---
 
-## ⚠️ Step 0 — Clear stale loopback aliases FIRST (WSL only)
+## ⚠️ Step 0 — WSL prerequisites (do once per WSL instance)
+
+### inotify limits
+
+`kubectl logs -f`, Helm watches, and file-system observers exhaust WSL's default inotify limit (128 instances) quickly with a kind + Istio cluster. Fix it once and persist it:
+
+```bash
+sudo sysctl fs.inotify.max_user_instances=512
+sudo sysctl fs.inotify.max_user_watches=1048576
+echo "fs.inotify.max_user_instances=512"   | sudo tee -a /etc/sysctl.conf
+echo "fs.inotify.max_user_watches=1048576" | sudo tee -a /etc/sysctl.conf
+```
+
+If already set from a previous session, skip — the `/etc/sysctl.conf` entries survive reboots.
+
+### Clear stale loopback aliases FIRST
 
 `cloud-provider-kind` adds each LoadBalancer IP as an alias on WSL's loopback interface.
 If a previous session left these behind (or a `cloud-provider-kind` is already running), the
@@ -220,7 +235,25 @@ kubectl rollout restart statefulset/postgres
 
 ---
 
-## Step 9 — WSL browser access
+## Step 9 — s15: seed the database + install backup CronJob
+
+```bash
+# Seed initial data (one-off Job — raw kubectl, not Helm)
+kubectl apply -f k8s/jobs/db-seed.yaml
+kubectl wait --for=condition=complete job/db-seed --timeout=60s
+kubectl logs job/db-seed   # should show: INSERT 0 3
+
+# Install the backup CronJob via Helm (lifecycle-tracked)
+helm install db-backup helm/db-backup -n default
+```
+
+> **Prerequisite:** the `allow-ingress-postgres` NetworkPolicy (applied in Step 7) must allow
+> `app=db-seed`. If you applied the NetworkPolicies before this fix was merged, re-apply:
+> `kubectl apply -f k8s/network-policies/postgres.yaml`
+
+---
+
+## Step 10 — WSL browser access
 
 Once everything is running, follow [wsl-browser-access.md](./wsl-browser-access.md) to reach
 `https://demo.local` from a Windows browser (ingress IP, `/etc/hosts`, kindccm port, `netsh`

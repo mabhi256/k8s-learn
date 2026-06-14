@@ -1,0 +1,10 @@
+schedule: "0 2 * * *"
+concurrencyPolicy: Forbid
+successfulJobsHistoryLimit: 3
+failedJobsHistoryLimit: 1
+backoffLimit: 2
+activeDeadlineSeconds: 600
+ttlSecondsAfterFinished: 86400
+storage: 1Gi
+secretName: users-api-secret
+configMapName: users-api-config

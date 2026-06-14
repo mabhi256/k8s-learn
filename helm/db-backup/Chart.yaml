@@ -1,0 +1,4 @@
+apiVersion: v2
+name: db-backup
+version: 0.1.0
+description: Nightly pg_dump CronJob with PVC storage

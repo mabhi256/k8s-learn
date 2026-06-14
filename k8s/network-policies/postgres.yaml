@@ -12,6 +12,12 @@ spec:
         - podSelector:
             matchLabels:
               app: users-api
+        - podSelector:
+            matchLabels:
+              app: db-seed
+        - podSelector:
+            matchLabels:
+              app: db-backup
       ports:
         - port: 5432
           protocol: TCP

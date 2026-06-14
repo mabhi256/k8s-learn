@@ -96,5 +96,8 @@ istio:
       retryOn: 5xx
     timeout: 5s
 
+migrate:
+  enabled: true
+
 nameOverride: ""
 fullnameOverride: ""

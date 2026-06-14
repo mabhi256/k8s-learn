@@ -20,6 +20,27 @@ spec:
         version: v1
     spec:
       serviceAccountName: users-api
+      initContainers:
+        - name: migrate
+          image: postgres:16
+          command:
+            - sh
+            - -c
+            - |
+              psql "$DATABASE_URL" <<'SQL'
+              CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW()
+              );
+              SQL
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: users-api
+                  key: DATABASE_URL
       containers:
       - name: users-api
         image: users-api:local-v3
