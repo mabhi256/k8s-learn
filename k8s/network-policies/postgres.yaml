@@ -38,7 +38,7 @@ spec:
       cnpg.io/cluster: postgres
   policyTypes: [Ingress]
   ingress:
-    # App traffic on 5432
+    # App + pooler traffic on 5432
     - from:
         - podSelector:
             matchLabels:
@@ -52,9 +52,13 @@ spec:
         - podSelector:
             matchLabels:
               app: db-restore
+        - podSelector:
+            matchLabels:
+              app: postgres-pooler
       ports:
         - port: 5432
           protocol: TCP
+
     # CNPG inter-pod replication + instance manager health checks
     - from:
         - podSelector:
@@ -65,6 +69,7 @@ spec:
           protocol: TCP
         - port: 8000
           protocol: TCP
+          
     # CNPG operator (instance manager health check on 8000)
     - from:
         - namespaceSelector:

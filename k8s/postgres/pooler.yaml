@@ -1,0 +1,28 @@
+# Connection pooling for the CNPG cluster.
+# The Pooler creates a Deployment of PgBouncer pods and a Service of the same
+# name (postgres-pooler-rw). Point apps at this Service instead of postgres-rw
+# so many short-lived client connections share a small pool of backend
+# connections to the primary.
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: postgres-pooler-rw
+  namespace: default
+spec:
+  cluster:
+    name: postgres
+  instances: 2          # PgBouncer replicas (HA for the pooler itself)
+  type: rw              # route to the primary; use "ro" for a read-replica pool
+  pgbouncer:
+    poolMode: transaction   # return the backend conn to the pool after each txn
+    parameters:
+      max_client_conn: "1000"     # client-facing connections PgBouncer accepts
+      default_pool_size: "25"     # backend connections per (user, db) to Postgres
+  template:
+    metadata:
+      labels:
+        # used by the NetworkPolicy below to allow pooler -> cluster on 5432
+        app: postgres-pooler
+      annotations:
+        # STRICT mTLS: wait for the Istio sidecar before PgBouncer starts
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
