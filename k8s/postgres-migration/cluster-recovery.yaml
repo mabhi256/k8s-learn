@@ -1,0 +1,46 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  instances: 2
+
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+
+  bootstrap:
+    recovery:
+      source: postgres-backup
+
+  externalClusters:
+    - name: postgres-backup
+      barmanObjectStore:
+        serverName: postgres
+        destinationPath: s3://cnpg-backups/
+        endpointURL: http://minio:9000
+        s3Credentials:
+          accessKeyId:
+            name: minio-credentials
+            key: ACCESS_KEY_ID
+          secretAccessKey:
+            name: minio-credentials
+            key: ACCESS_SECRET_KEY
+
+  inheritedMetadata:
+    annotations:
+      proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+
+  storage:
+    size: 1Gi
+
+  postgresql:
+    parameters:
+      shared_buffers: "128MB"
+      max_connections: "100"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi

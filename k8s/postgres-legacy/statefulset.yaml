@@ -34,7 +34,7 @@ spec:
             - configMapRef:
                 name: postgres-config
             - secretRef:
-                name: postgres-secret 
+                name: postgres-secret
           volumeMounts:
           - name: pgdata
             mountPath: /var/lib/postgresql/data/pgdata

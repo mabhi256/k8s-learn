@@ -16,37 +16,7 @@ Leave this terminal open.
 
 ---
 
-## 2. Get the ingress IP
-
-Wait until the ingress-nginx controller has an external IP (may take 10–20 s after cloud-provider-kind starts):
-
-```bash
-kubectl get svc -n ingress-nginx ingress-nginx-controller
-# EXTERNAL-IP should be a 172.x.x.x address, not <pending>
-
-INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-
-echo $INGRESS_IP   # confirm non-empty before continuing
-```
-
----
-
-## 3. Update WSL /etc/hosts
-
-```bash
-
-# check if demo.local line exists                   
-grep -q "demo\.local" /etc/hosts \
-  # If yes, update it
-  && sudo sed -i "s/.*demo\.local/$INGRESS_IP demo.local/" /etc/hosts \
-  # else add line
-  || echo "$INGRESS_IP demo.local" | sudo tee -a /etc/hosts
-```
-
----
-
-## 4. Remove loopback aliases
+## 2. Remove loopback aliases
 
 cloud-provider-kind adds the LoadBalancer IPs as aliases on WSL's loopback interface. When those aliases exist, the kernel treats the IP as local and kube-proxy's DNAT rules never fire - traffic never reaches the kindccm proxy container.
 
@@ -63,6 +33,36 @@ ip route get $INGRESS_IP
 ```
 
 cloud-provider-kind re-adds the aliases on each reconcile cycle. If curl stops working after a few minutes, re-run the `ip addr del` step.
+
+---
+
+## 3. Get the ingress IP
+
+Wait until the ingress-nginx controller has an external IP (may take 10–20 s after cloud-provider-kind starts):
+
+```bash
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+# EXTERNAL-IP should be a 172.x.x.x address, not <pending>
+
+INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+echo $INGRESS_IP   # confirm non-empty before continuing
+```
+
+---
+
+## 4. Update WSL /etc/hosts
+
+```bash
+
+# check if demo.local line exists                   
+grep -q "demo\.local" /etc/hosts \
+  # If yes, update it
+  && sudo sed -i "s/.*demo\.local/$INGRESS_IP demo.local/" /etc/hosts \
+  # else add line
+  || echo "$INGRESS_IP demo.local" | sudo tee -a /etc/hosts
+```
 
 ---
 
@@ -209,9 +209,9 @@ Steps 1–4 and 7 must be repeated. Steps 6 and 9 only need repeating if the clu
 | Step                         |                                     When   |
 |------------------------------|--------------------------------------------|
 | 1. Start cloud-provider-kind | Every terminal session                     |
-| 2. Get INGRESS_IP            | Every cluster start                        |
-| 3. Update WSL /etc/hosts     | Every cluster start (IP may change)        |
-| 4. Remove loopback aliases   | Every cluster start; repeat if curl breaks |
+| 2. Remove loopback aliases   | Every cluster start; repeat if curl breaks |
+| 3. Get INGRESS_IP            | Every cluster start                        |
+| 4. Update WSL /etc/hosts     | Every cluster start (IP may change)        |
 | 5. Find kindccm port         | Every cluster start                        |
 | 6. Windows hosts file        | Once, or after cluster recreate            |
 | 7. Update port proxy         | Every cluster start (port changes)         |

@@ -1,0 +1,43 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  instances: 2
+
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+
+  bootstrap:
+    pg_basebackup:
+      source: old-postgres
+
+  externalClusters:
+    - name: old-postgres
+      connectionParameters:
+        host: postgres-0.postgres-headless.default.svc
+        port: "5432"
+        user: appuser
+        dbname: appdb
+      password:
+        name: postgres-secret
+        key: POSTGRES_PASSWORD
+
+  inheritedMetadata:
+    annotations:
+      proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+
+  storage:
+    size: 1Gi
+
+  postgresql:
+    parameters:
+      shared_buffers: "128MB"
+      max_connections: "100"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi

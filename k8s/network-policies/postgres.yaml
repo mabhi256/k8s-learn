@@ -1,13 +1,44 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-ingress-postgres
+  name: allow-ingress-postgres-legacy
 spec:
   podSelector:
     matchLabels:
       app: postgres
   policyTypes: [Ingress]
   ingress:
+    # CNPG pg_basebackup migration
+    - from:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+      ports:
+        - port: 5432
+          protocol: TCP
+    # App traffic during migration
+    - from:
+        - podSelector:
+            matchLabels:
+              app: users-api
+        - podSelector:
+            matchLabels:
+              app: db-backup
+      ports:
+        - port: 5432
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-postgres
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: postgres
+  policyTypes: [Ingress]
+  ingress:
+    # App traffic on 5432
     - from:
         - podSelector:
             matchLabels:
@@ -18,6 +49,27 @@ spec:
         - podSelector:
             matchLabels:
               app: db-backup
+        - podSelector:
+            matchLabels:
+              app: db-restore
       ports:
         - port: 5432
+          protocol: TCP
+    # CNPG inter-pod replication + instance manager health checks
+    - from:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+      ports:
+        - port: 5432
+          protocol: TCP
+        - port: 8000
+          protocol: TCP
+    # CNPG operator (instance manager health check on 8000)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cnpg-system
+      ports:
+        - port: 8000
           protocol: TCP

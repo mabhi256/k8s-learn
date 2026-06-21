@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-restore
+  namespace: default
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: db-restore
+      annotations:
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: restore
+          image: postgres:18
+          command:
+            - bash
+            - -c
+            - |
+              set -eo pipefail
+              LATEST=$(ls -t /backups/backup-*.sql.gz 2>/dev/null | head -1)
+              if [ -z "$LATEST" ]; then
+                echo "No backup found in /backups/"
+                exit 1
+              fi
+              echo "Restoring from $LATEST ..."
+              gunzip -c "$LATEST" | psql "postgresql://${DB_USER}:${DB_PASSWORD}@postgres-rw:5432/appdb" 2>&1
+              echo "Restore complete."
+              exec 3<>/dev/tcp/localhost/15020 && printf 'POST /quitquitquit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n' >&3 && cat <&3 && exec 3>&- || true
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app-credentials
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app-credentials
+                  key: password
+          volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+              readOnly: true
+      volumes:
+        - name: backup-storage
+          persistentVolumeClaim:
+            claimName: db-backups

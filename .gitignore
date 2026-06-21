@@ -7,3 +7,4 @@ get_helm.sh
 # Claude Code local config
 .claude/
 .mcp.json
+backup-local.sql.gz

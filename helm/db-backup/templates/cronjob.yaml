@@ -18,21 +18,23 @@ spec:
           labels:
             app: db-backup
           annotations:
-            sidecar.istio.io/inject: "false"
+            proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
         spec:
           restartPolicy: Never
           containers:
             - name: backup
               image: postgres:18
               command:
-                - sh
+                - bash
                 - -c
                 - |
+                  set -eo pipefail
                   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
                   DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
                   pg_dump "$DATABASE_URL" | gzip > "/backups/backup-${TIMESTAMP}.sql.gz"
                   echo "Backup written to /backups/backup-${TIMESTAMP}.sql.gz"
                   ls -lh /backups/
+                  exec 3<>/dev/tcp/localhost/15020 && printf 'POST /quitquitquit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\n\r\n' >&3 && cat <&3 && exec 3>&- || true
               env:
                 - name: DB_USER
                   valueFrom:

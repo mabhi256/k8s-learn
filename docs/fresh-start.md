@@ -1,10 +1,14 @@
-# Fresh start — rebuild the cluster from zero to s15
+# Fresh start — rebuild the cluster from zero to s16
 
-> Full rebuild runbook: from no cluster to the **s15** state (Istio mesh + Jobs/CronJobs),
+> Full rebuild runbook: from no cluster to the **s16** state (CNPG operator + MinIO backups),
 > **without Mimir**. Run everything from the repo root.
 
-**Before you rebuild:** if you only restarted your PC, you do **not** need this. A reboot
-just stops the kind containers; it doesn't destroy them. Bring the cluster back with:
+---
+
+## ⚠️ Step 0 — Do you actually need a rebuild?
+
+If you only restarted your PC, you do **not** need this runbook. A reboot just stops the kind
+containers; it doesn't destroy them. Bring the cluster back with:
 
 ```bash
 docker start $(docker ps -aq --filter "name=demo")
@@ -14,28 +18,40 @@ kubectl get nodes   # wait ~30s
 Only follow the steps below if `kind get clusters` shows nothing, or the cluster is broken
 beyond repair.
 
----
-
-## ⚠️ Step 0 — WSL prerequisites (do once per WSL instance)
-
 ### inotify limits
 
-`kubectl logs -f`, Helm watches, and file-system observers exhaust WSL's default inotify limit (128 instances) quickly with a kind + Istio cluster. Fix it once and persist it:
+`kubectl logs -f`, Helm watches, and file-system observers exhaust the Linux default inotify limit (128 instances) quickly with a kind + Istio cluster. Fix it once and persist it:
 
 ```bash
-sudo sysctl fs.inotify.max_user_instances=512
-sudo sysctl fs.inotify.max_user_watches=1048576
+# Check the values
+sudo sysctl fs.inotify.max_user_instances
+sudo sysctl fs.inotify.max_user_watches
+
+# persist inotify limits across reboots
 echo "fs.inotify.max_user_instances=512"   | sudo tee -a /etc/sysctl.conf
 echo "fs.inotify.max_user_watches=1048576" | sudo tee -a /etc/sysctl.conf
 ```
 
 If already set from a previous session, skip — the `/etc/sysctl.conf` entries survive reboots.
 
-### Clear stale loopback aliases FIRST
+---
+
+## Step 1 — cloud-provider-kind (dedicated WSL terminal, leave running)
+
+```bash
+sudo KUBECONFIG=$HOME/.kube/config $(go env GOPATH)/bin/cloud-provider-kind
+```
+
+Without this, every `LoadBalancer` Service (ingress-nginx, postgres-lb, notify-api-lb) stays
+`<pending>`.
+
+---
+
+## Step 2 — Clear stale loopback aliases
 
 `cloud-provider-kind` adds each LoadBalancer IP as an alias on WSL's loopback interface.
 If a previous session left these behind (or a `cloud-provider-kind` is already running), the
-kernel treats those `172.x` IPs as local and kube-proxy's DNAT never fires — in-cluster LB
+kernel treats those `172.x` IPs as local and kube-proxy's DNAT never fires: in-cluster LB
 traffic silently dead-ends. **Check and remove them before anything else:**
 
 ```bash
@@ -53,22 +69,11 @@ ip addr show lo | grep '172\.'   # should print nothing
 ```
 
 > `cloud-provider-kind` re-adds these on each reconcile. If LB traffic breaks mid-session,
-> re-run the `ip addr del` step — see [wsl-browser-access.md](./wsl-browser-access.md) step 4.
+> re-run the `ip addr del` step: see [wsl-browser-access.md](./wsl-browser-access.md) step 2.
 
 ---
 
-## Step 1 — cloud-provider-kind (dedicated WSL terminal, leave running)
-
-```bash
-sudo KUBECONFIG=$HOME/.kube/config $(go env GOPATH)/bin/cloud-provider-kind
-```
-
-Without this, every `LoadBalancer` Service (ingress-nginx, postgres-lb, notify-api-lb) stays
-`<pending>`.
-
----
-
-## Step 2 — Create the cluster (Calico CNI, 3 nodes)
+## Step 3 — Create the cluster (Calico CNI, 3 nodes)
 
 ```bash
 kind delete cluster --name demo
@@ -94,7 +99,7 @@ kubectl get nodes   # all 3 should be Ready now
 
 ---
 
-## Step 3 — Build & load images
+## Step 4 — Build & load images
 
 ```bash
 docker build -t users-api:local-v3  apps/users-api      # v3 = /metrics + tracing (s12)
@@ -105,7 +110,7 @@ kind load docker-image users-api:local-v3 notify-api:local-v2 frontend:local-v1 
 
 ---
 
-## Step 4 — Cluster add-ons (ingress, cert-manager, metrics-server)
+## Step 5 — Cluster add-ons (ingress, cert-manager, metrics-server)
 
 ```bash
 # nginx-ingress (cloud manifest → LoadBalancer via cloud-provider-kind)
@@ -128,7 +133,7 @@ kubectl -n kube-system rollout status deploy/metrics-server --timeout=120s
 
 ---
 
-## Step 5 — Observability, **no Mimir** (s12/s13)
+## Step 6 — Observability, **no Mimir** (s12/s13)
 
 > **Why this comes before the app tier:** the `users-api` chart renders a `ServiceMonitor`
 > (CRD from kube-prometheus-stack) and a `VerticalPodAutoscaler` (CRD from the Fairwinds VPA
@@ -180,11 +185,25 @@ helm install dashboards helm/dashboards -n lgtm
 
 ---
 
-## Step 6 — App tier
+## Step 7 — App tier
 
 ```bash
-# Postgres StatefulSet + secret/configmap/services (s5)
+# MinIO (local S3 for CNPG backups, s16)
+kubectl apply -f k8s/minio/
+kubectl rollout status deploy/minio
+kubectl exec deploy/minio -- mc alias set local http://localhost:9000 minioadmin minioadmin
+kubectl exec deploy/minio -- mc mb local/cnpg-backups
+
+# CNPG operator (s16)
+helm repo add cnpg https://cloudnative-pg.github.io/charts
+helm repo update cnpg
+helm install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace
+kubectl -n cnpg-system rollout status deploy/cnpg-cloudnative-pg
+
+# Postgres via CloudNativePG (s16) — cluster + credentials + scheduled backup
 kubectl apply -f k8s/postgres/
+kubectl get cluster postgres -w
+# STATUS: Creating → Healthy
 
 # notify-api + frontend (raw manifests)
 kubectl apply -f k8s/notify-api/
@@ -194,19 +213,18 @@ kubectl apply -f k8s/frontend/
 kubectl apply -f k8s/tls/
 kubectl apply -f k8s/ingress.yaml
 
-kubectl rollout status statefulset/postgres
 kubectl rollout status deploy/notify-api
 kubectl rollout status deploy/frontend
 
 # users-api via Helm (s11+) — chart wires HPA, ServiceMonitor, VPA, env from values.yaml.
-# Works with no flags now that Step 5 installed the ServiceMonitor + VPA CRDs and the lgtm ns.
+# Works with no flags now that Step 6 installed the ServiceMonitor + VPA CRDs and the lgtm ns.
 helm install users-api helm/users-api -n default
 kubectl rollout status deploy/users-api
 ```
 
 ---
 
-## Step 7 — NetworkPolicies (s7) — apply LAST in this tier
+## Step 8 — NetworkPolicies (s7) — apply LAST in this tier
 
 ```bash
 kubectl apply -f k8s/network-policies/
@@ -214,7 +232,7 @@ kubectl apply -f k8s/network-policies/
 
 ---
 
-## Step 8 — Istio service mesh (s14)
+## Step 9 — Istio service mesh (s14)
 
 ```bash
 # If istioctl isn't installed yet:
@@ -235,7 +253,7 @@ kubectl rollout restart statefulset/postgres
 
 ---
 
-## Step 9 — s15: seed the database + install backup CronJob
+## Step 10 — s15: seed the database + install backup CronJob
 
 ```bash
 # Seed initial data (one-off Job — raw kubectl, not Helm)
@@ -247,18 +265,17 @@ kubectl logs job/db-seed   # should show: INSERT 0 3
 helm install db-backup helm/db-backup -n default
 ```
 
-> **Prerequisite:** the `allow-ingress-postgres` NetworkPolicy (applied in Step 7) must allow
-> `app=db-seed`. If you applied the NetworkPolicies before this fix was merged, re-apply:
-> `kubectl apply -f k8s/network-policies/postgres.yaml`
+> **Prerequisite:** the `allow-ingress-postgres` NetworkPolicy (applied in Step 8) must allow
+> `app=db-seed`.
 
 ---
 
-## Step 10 — WSL browser access
+## Step 11 — WSL browser access
 
 Once everything is running, follow [wsl-browser-access.md](./wsl-browser-access.md) to reach
 `https://demo.local` from a Windows browser (ingress IP, `/etc/hosts`, kindccm port, `netsh`
-portproxy, CA trust). The loopback-alias removal in Step 0 above is the same step 4 in that
-checklist — re-run it any time LB traffic stops working.
+portproxy, CA trust). The loopback-alias removal in Step 2 above is the same step 2 in that
+checklist: re-run it any time LB traffic stops working.
 
 ---
 
