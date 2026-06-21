@@ -1,0 +1,9 @@
+# KEDA defaults are sensible for kind. Override only what matters.
+# https://github.com/kedacore/charts/tree/main/keda
+
+# Reduce resource requests for kind
+operator:
+  replicaCount: 1
+
+metricsServer:
+  replicaCount: 1

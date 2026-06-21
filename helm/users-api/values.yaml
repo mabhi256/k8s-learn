@@ -24,7 +24,7 @@ resources:
   limits:   { cpu: 200m, memory: 256Mi }
 
 hpa:
-  enabled: true
+  enabled: false
   minReplicas: 2
   maxReplicas: 6
   targetCPUUtilizationPercentage: 50
@@ -95,6 +95,24 @@ istio:
       attempts: 2
       retryOn: 5xx
     timeout: 5s
+
+keda:
+  enabled: true
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  cooldownPeriod: 300
+  pollingInterval: 15
+  prometheus:
+    serverAddress: http://prom-kube-prometheus-stack-prometheus.lgtm.svc:9090
+    query: sum(rate(http_requests_total{namespace="default",service="users-api"}[2m]))
+    threshold: "10"
+    activationThreshold: "1"
+  cron:
+    enabled: false
+    timezone: "UTC"
+    start: "0 8 * * 1-5"
+    end: "0 18 * * 1-5"
+    desiredReplicas: "3"
 
 migrate:
   enabled: true

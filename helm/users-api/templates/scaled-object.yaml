@@ -1,0 +1,36 @@
+{{- if and .Values.keda.enabled (not .Values.keda.http.enabled) }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "users-api.fullname" . }}
+  labels:
+    {{- include "users-api.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "users-api.fullname" . }}
+  minReplicaCount: {{ .Values.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
+  {{- with .Values.keda.cooldownPeriod }}
+  cooldownPeriod: {{ . }}
+  {{- end }}
+  {{- with .Values.keda.pollingInterval }}
+  pollingInterval: {{ . }}
+  {{- end }}
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.prometheus.serverAddress }}
+        query: {{ .Values.keda.prometheus.query }}
+        threshold: {{ .Values.keda.prometheus.threshold | quote }}
+        {{- with .Values.keda.prometheus.activationThreshold }}
+        activationThreshold: {{ . | quote }}
+        {{- end }}
+    {{- if .Values.keda.cron.enabled }}
+    - type: cron
+      metadata:
+        timezone: {{ .Values.keda.cron.timezone | quote }}
+        start: {{ .Values.keda.cron.start | quote }}
+        end: {{ .Values.keda.cron.end | quote }}
+        desiredReplicas: {{ .Values.keda.cron.desiredReplicas | quote }}
+    {{- end }}
+{{- end }}

@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "users-api.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.hpa.enabled }}
+  {{- if not (or .Values.hpa.enabled .Values.keda.enabled) }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:

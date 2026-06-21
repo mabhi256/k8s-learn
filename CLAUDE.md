@@ -1,3 +1,11 @@
+# Project Guidelines
+
+## Shell Commands
+
+**All shell commands (kubectl, helm, docker, kind, etc.) MUST be run inside WSL, not in Windows PowerShell or CMD.** Use the Bash tool for executing commands, as it runs in a POSIX shell environment.
+
+**Do NOT deploy, install, or apply anything.** No `helm install/upgrade`, `kubectl apply`, `docker build`, or similar. Only the user runs those commands. You may read cluster state (e.g. `kubectl get`, `kubectl describe`, `kubectl logs`) for diagnosis.
+
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 
