@@ -22,9 +22,9 @@ spec:
         path: /api(/|$)(.*)
         backend:
           service:
-            name: users-api
-            port: 
-              number: 80
+            name: keda-interceptor-proxy
+            port:
+              number: 8080
       - pathType: Prefix
         path: /
         backend:

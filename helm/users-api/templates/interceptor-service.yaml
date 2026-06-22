@@ -1,0 +1,11 @@
+{{- if and .Values.keda.enabled .Values.keda.http.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: keda-interceptor-proxy
+  labels:
+    {{- include "users-api.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local
+{{- end }}

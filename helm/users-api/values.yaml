@@ -113,6 +113,13 @@ keda:
     start: "0 8 * * 1-5"
     end: "0 18 * * 1-5"
     desiredReplicas: "3"
+  http:
+    enabled: true
+    hosts:
+      - demo.local
+    targetRate: 10
+    window: 1m
+    granularity: 1s
 
 migrate:
   enabled: true

@@ -1,0 +1,7 @@
+# KEDA HTTP Add-on values for kind
+# https://github.com/kedacore/charts/tree/main/http-add-on
+
+interceptor:
+  replicas:
+    min: 1
+    max: 1

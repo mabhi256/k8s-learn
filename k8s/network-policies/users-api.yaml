@@ -21,6 +21,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: lgtm
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda
       ports:
         - port: 3000
           protocol: TCP

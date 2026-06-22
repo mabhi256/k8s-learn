@@ -1,0 +1,21 @@
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: users-api
+  namespace: default
+spec:
+  hosts:
+    - demo.local
+  scaleTargetRef:
+    name: users-api
+    service: users-api
+    port: 80
+  replicas:
+    min: 0
+    max: 10
+  scaledownPeriod: 300
+  scalingMetric:
+    requestRate:
+      targetValue: 10
+      window: 1m
+      granularity: 1s # bucket size used for aggregation
