@@ -1,0 +1,4 @@
+frontend {{ .Values.image.tag }} installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Try:
+  curl http://frontend.{{ .Release.Namespace }}.svc/

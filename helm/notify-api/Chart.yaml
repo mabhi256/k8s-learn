@@ -1,0 +1,4 @@
+apiVersion: v2
+name: notify-api
+version: 0.1.0
+description: gRPC notification service

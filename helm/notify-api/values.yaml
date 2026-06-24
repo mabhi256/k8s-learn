@@ -1,0 +1,32 @@
+image:
+  repository: notify-api
+  tag: local-v2
+  pullPolicy: Never
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+    - name: metrics
+      port: 9091
+      targetPort: 9091
+
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits:   { cpu: 100m, memory: 128Mi }
+
+env:
+  LOG_LEVEL: "debug"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-opentelemetry-collector.lgtm.svc:4317"
+  OTEL_SERVICE_NAME: "notify-api"
+
+serviceMonitor:
+  enabled: true
+  namespace: lgtm
+
+nameOverride: ""
+fullnameOverride: ""
