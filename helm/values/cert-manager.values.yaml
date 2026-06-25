@@ -1,0 +1,4 @@
+# The original static-manifest install bundled the CRDs, so let the chart own
+# them too. cert-manager v1.16+ uses crds.enabled (not the old installCRDs).
+crds:
+  enabled: true

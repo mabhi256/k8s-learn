@@ -95,7 +95,7 @@ $content | Where-Object { $_ -notmatch '172\.\d+\.\d+\.\d+.*demo\.local' } |
   Set-Content C:\Windows\System32\drivers\etc\hosts
 
 # Add the correct entry:
-Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 demo.local"
+Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 demo.local grafana.demo.local argo.demo.local"
 ```
 
 ---

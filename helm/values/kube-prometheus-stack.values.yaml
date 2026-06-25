@@ -8,6 +8,14 @@ kubeEtcd:
 kubeProxy:
   enabled: false
 
+prometheusOperator:
+  admissionWebhooks:
+    certManager:
+      enabled: true
+      issuerRef:
+        name: ca-issuer
+        kind: ClusterIssuer
+
 prometheus:
   prometheusSpec:
     retention: 6h # Mimir owns long-term; Prometheus is a buffer

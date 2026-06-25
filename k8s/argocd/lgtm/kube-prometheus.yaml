@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/mabhi256/k8s-learn.git
+      targetRevision: HEAD
+      ref: values
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: "87.*"
+      helm:
+        valueFiles:
+          - $values/helm/values/kube-prometheus-stack.values.yaml
+          # Uncomment the line below to enable Prometheus remote-write to Mimir
+          # - $values/helm/values/kube-prometheus-stack.mimir.values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lgtm
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

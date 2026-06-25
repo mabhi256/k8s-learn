@@ -1,0 +1,7 @@
+controller:
+  # Disable the admission webhook and its one-shot install Jobs. The Jobs are
+  # garbage-collected after they run, which makes ArgoCD churn (the same class
+  # of problem as the kube-prometheus admission Jobs). The validating webhook is
+  # optional on a single-tenant kind cluster.
+  admissionWebhooks:
+    enabled: false
