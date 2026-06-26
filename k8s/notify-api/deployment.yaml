@@ -5,7 +5,8 @@ metadata:
   labels:
     app: notify-api
 spec:
-  replicas: 2
+  # Reduced to save RAM; set back to 2 for multi-replica testing
+  replicas: 1
   selector:
     matchLabels:
       app: notify-api

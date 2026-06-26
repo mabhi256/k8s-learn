@@ -5,3 +5,8 @@ interceptor:
   replicas:
     min: 1
     max: 1
+
+# Single replica to save RAM on kind
+# To undo: remove the scaler block (default is 3 replicas)
+scaler:
+  replicas: 1

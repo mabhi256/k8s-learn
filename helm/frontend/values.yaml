@@ -3,7 +3,8 @@ image:
   tag: local-v1
   pullPolicy: Never
 
-replicaCount: 2
+# Reduced to save RAM; set back to 2 for multi-replica testing
+replicaCount: 1
 
 service:
   type: ClusterIP

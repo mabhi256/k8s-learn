@@ -11,7 +11,8 @@ metadata:
 spec:
   cluster:
     name: postgres
-  instances: 2          # PgBouncer replicas (HA for the pooler itself)
+  # Reduced to save RAM; set back to 2 for HA testing
+  instances: 1
   type: rw              # route to the primary; use "ro" for a read-replica pool
   pgbouncer:
     poolMode: transaction   # return the backend conn to the pool after each txn

@@ -14,5 +14,7 @@ nodes:
 # workers carry stateful workloads (s5) so anti-affinity can spread them
 - role: worker
   image: kindest/node:v1.32.2
-- role: worker
-  image: kindest/node:v1.32.2
+# Commented out to reduce RAM usage (~150MB saved); uncomment if you need
+# multi-node scheduling (anti-affinity, topology spread, etc.)
+# - role: worker
+#   image: kindest/node:v1.32.2

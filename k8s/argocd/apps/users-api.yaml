@@ -17,9 +17,17 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: default
+  # Stop ArgoCD from overwriting the replica count scaled by KEDA 
+  # (which triggers a race condition or an OutOfSync status loop)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true # Forces ArgoCD to honor these rules during syncs

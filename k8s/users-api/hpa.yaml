@@ -9,7 +9,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: users-api
-  minReplicas: 2
+  # Reduced to save RAM; set back to 2 for multi-replica testing
+  minReplicas: 1
   maxReplicas: 6
   metrics:
     # s13: scale on RPS via prometheus-adapter custom metric

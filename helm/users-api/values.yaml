@@ -3,7 +3,8 @@ image:
   tag: local-v3
   pullPolicy: Never
 
-replicaCount: 2
+# Reduced to save RAM; set back to 2 for multi-replica testing
+replicaCount: 1
 
 service:
   type: ClusterIP
@@ -25,7 +26,8 @@ resources:
 
 hpa:
   enabled: false
-  minReplicas: 2
+  # Reduced to save RAM; set back to 2 for multi-replica testing
+  minReplicas: 1
   maxReplicas: 6
   targetCPUUtilizationPercentage: 50
   targetMemoryUtilizationPercentage: 70
