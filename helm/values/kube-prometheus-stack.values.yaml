@@ -42,7 +42,10 @@ grafana:
       - secretName: grafana-local-tls
         hosts:
           - grafana.demo.local
-  adminPassword: "admin"           # local kind only; production uses External Secrets (s19)
+  admin:
+    existingSecret: grafana-admin    # created by ExternalSecret in k8s/security/external-secret.yaml
+    userKey: admin-user
+    passwordKey: admin-password
   defaultDashboardsTimezone: browser
   additionalDataSources:           # the bundled Prometheus is auto-added; we add the other three
     - name: Loki

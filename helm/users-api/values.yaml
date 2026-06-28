@@ -46,10 +46,6 @@ env:
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-opentelemetry-collector.lgtm.svc:4317"
   OTEL_SERVICE_NAME: "users-api"
 
-secrets:
-  DB_USER: "appuser"
-  DB_PASSWORD: "secret"
-
 serviceMonitor:
   enabled: true
   namespace: lgtm
