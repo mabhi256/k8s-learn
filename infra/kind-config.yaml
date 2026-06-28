@@ -8,9 +8,9 @@ networking:
 nodes:
 - role: control-plane
   image: kindest/node:v1.32.2
-  extraPortMappings:
-  - containerPort: 30080   # NodePort kept for s2/s3 reference
-    hostPort: 30080
+  # extraPortMappings:
+  # - containerPort: 30080   # NodePort kept for s2/s3 reference
+  #   hostPort: 30080
 # workers carry stateful workloads (s5) so anti-affinity can spread them
 - role: worker
   image: kindest/node:v1.32.2

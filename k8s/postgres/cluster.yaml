@@ -27,18 +27,18 @@ spec:
   storage:
     size: 1Gi
 
-  backup:
-    barmanObjectStore:
-      destinationPath: s3://cnpg-backups/
-      endpointURL: http://minio:9000
-      s3Credentials:
-        accessKeyId:
-          name: minio-credentials
-          key: ACCESS_KEY_ID
-        secretAccessKey:
-          name: minio-credentials
-          key: ACCESS_SECRET_KEY
-    retentionPolicy: "7d"
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: s3://cnpg-backups/
+  #     endpointURL: http://minio:9000
+  #     s3Credentials:
+  #       accessKeyId:
+  #         name: minio-credentials
+  #         key: ACCESS_KEY_ID
+  #       secretAccessKey:
+  #         name: minio-credentials
+  #         key: ACCESS_SECRET_KEY
+  #   retentionPolicy: "7d"
 
   postgresql:
     parameters:
