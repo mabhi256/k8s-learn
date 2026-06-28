@@ -41,4 +41,4 @@ spec:
                   name: users-api-secret
                   key: DB_PASSWORD
             - name: DATABASE_URL
-              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@postgres-0.postgres-headless:5432/appdb"
+              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@postgres-rw:5432/appdb"

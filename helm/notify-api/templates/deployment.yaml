@@ -36,6 +36,11 @@ spec:
                 name: {{ include "notify-api.fullname" . }}-config
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          startupProbe:
+            tcpSocket:
+              port: 50051
+            periodSeconds: 2
+            failureThreshold: 30
           livenessProbe:
             tcpSocket:
               port: 50051
