@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-egress
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: postgres
+  policyTypes:
+    - Egress
+  egress:
+    # DNS (CoreDNS in kube-system)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Pooler <-> primary traffic, inter-instance replication/health
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 8000
+    # CNPG instance manager -> Kubernetes API server (get Cluster CR, status reporting, leader election).
+    # NOTE: kube-proxy DNATs the "kubernetes" ClusterIP (10.96.0.1:443) to the real API server
+    # endpoint BEFORE Calico enforces egress, so the policy must allow the post-DNAT destination:
+    # the kind node network (control-plane 172.18.0.2) on the apiserver port 6443, NOT 10.96.0.1:443.
+    - to:
+        - ipBlock:
+            cidr: 172.18.0.0/16
+      ports:
+        - protocol: TCP
+          port: 6443
