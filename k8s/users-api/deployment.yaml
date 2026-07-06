@@ -23,6 +23,14 @@ spec:
       initContainers:
         - name: migrate
           image: postgres:16
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           command:
             - sh
             - -c
@@ -44,6 +52,18 @@ spec:
       containers:
       - name: users-api
         image: users-api:local-v3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+          readOnlyRootFilesystem: true
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp        
         imagePullPolicy: Never
         ports:
           - containerPort: 3000
@@ -81,3 +101,6 @@ spec:
           preStop:
             exec:
               command: ["sh", "-c", "sleep 5"]
+      volumes:
+        - name: tmp
+          emptyDir: {}

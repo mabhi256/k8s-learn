@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
+  labels:
+    app: frontend
 spec:
   # Reduced to save RAM; set back to 2 for multi-replica testing
   replicas: 1
@@ -22,6 +24,23 @@ spec:
       containers:
       - name: frontend
         image: frontend:local-v1
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 101
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+            add: ["NET_BIND_SERVICE"]
+          seccompProfile:
+            type: RuntimeDefault
+          readOnlyRootFilesystem: true
+        volumeMounts:
+          - name: cache
+            mountPath: /var/cache/nginx
+          - name: run
+            mountPath: /var/run
+          - name: tmp
+            mountPath: /tmp
         imagePullPolicy: Never
         ports:
         - containerPort: 80
@@ -48,3 +67,10 @@ spec:
           preStop:
             exec:
               command: ["sh", "-c", "sleep 5"]
+      volumes:
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
