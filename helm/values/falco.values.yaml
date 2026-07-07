@@ -1,0 +1,40 @@
+driver:
+  kind: modern_ebpf
+  modernEbpf:
+    # Without this, the chart defaults to `privileged: true`, which
+    # Kyverno's deny-privileged ClusterPolicy (s19b) rejects. This swaps
+    # privileged for four capabilities: BPF, SYS_RESOURCE, PERFMON, SYS_PTRACE.
+    leastPrivileged: true
+
+falco:
+  grpc:
+    enabled: true
+  grpc_output:
+    enabled: true
+
+falcosidekick:
+  enabled: true
+  config:
+    slack:
+      webhookurl: ""   # add your Slack webhook for real alerts
+  # No real Slack workspace to send to (s19f) — view alerts in
+  # falcosidekick's own bundled web UI instead. Ships with its own Redis
+  # for storage.
+  webui:
+    enabled: true
+
+customRules:
+  rules-users-api.yaml: |-
+    - list: postgres_addrs
+      items: []  # fill in: kubectl get svc postgres -o jsonpath='{.spec.clusterIP}'
+    - list: notify_api_addrs
+      items: []  # fill in: kubectl get svc notify-api -o jsonpath='{.spec.clusterIP}'
+    - rule: users-api unexpected outbound
+      desc: users-api opened a connection to an unexpected destination
+      condition: >
+        outbound and container.name = "users-api"
+        and not (fd.sip.name in (postgres_addrs) or fd.sip.name in (notify_api_addrs))
+      output: >
+        Unexpected outbound from users-api
+        (connection=%fd.name container=%container.name pod=%k8s.pod.name)
+      priority: WARNING

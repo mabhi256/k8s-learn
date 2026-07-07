@@ -12,6 +12,8 @@ spec:
               kinds:
                 - Deployment
                 - StatefulSet
+              namespaces:
+                - default
       validate:
         message: "Label 'app' is required."
         pattern:
