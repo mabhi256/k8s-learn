@@ -1,0 +1,23 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: default-resource-limits
+spec:
+  rules:
+    - name: add-default-memory-limit
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - default
+      mutate:
+        patchStrategicMerge:
+          spec:
+            containers:
+              - (name): "*"
+                resources:
+                # The `+(memory)` prefix means "set this only if it isn't already set"
+                  limits:
+                    +(memory): "256Mi" 
